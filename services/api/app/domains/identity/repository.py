@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.identity.models import Escola, ResponsavelAluno, Secretaria, Turma, Usuario
 from app.domains.gestao.models import Matricula
+from app.domains.identity.models import Escola, ResponsavelAluno, Secretaria, Turma, Usuario
 
 
 class SecretariaRepository:
@@ -15,9 +15,7 @@ class SecretariaRepository:
         return await self.session.get(Secretaria, secretaria_id)
 
     async def get_by_cnpj(self, cnpj: str) -> Secretaria | None:
-        result = await self.session.execute(
-            select(Secretaria).where(Secretaria.cnpj == cnpj)
-        )
+        result = await self.session.execute(select(Secretaria).where(Secretaria.cnpj == cnpj))
         return result.scalar_one_or_none()
 
     async def list_all(self) -> list[Secretaria]:
@@ -60,7 +58,9 @@ class TurmaRepository:
     async def get(self, turma_id: uuid.UUID) -> Turma | None:
         return await self.session.get(Turma, turma_id)
 
-    async def list_by_escola(self, escola_id: uuid.UUID, ano_letivo: int | None = None) -> list[Turma]:
+    async def list_by_escola(
+        self, escola_id: uuid.UUID, ano_letivo: int | None = None
+    ) -> list[Turma]:
         q = select(Turma).where(Turma.escola_id == escola_id, Turma.ativo.is_(True))
         if ano_letivo:
             q = q.where(Turma.ano_letivo == ano_letivo)

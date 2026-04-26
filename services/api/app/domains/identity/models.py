@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.shared.base_model import AuditMixin, Base
 
 
-class PerfilUsuario(str, enum.Enum):
+class PerfilUsuario(enum.StrEnum):
     aluno = "aluno"
     responsavel = "responsavel"
     professor = "professor"
@@ -67,9 +67,9 @@ class Turma(AuditMixin, Base):
         ForeignKey("escolas.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    nome: Mapped[str] = mapped_column(String(50), nullable=False)       # "5º Ano A"
-    serie: Mapped[str] = mapped_column(String(50), nullable=False)      # "5º Ano"
-    ano_letivo: Mapped[int] = mapped_column(Integer, nullable=False)    # 2026
+    nome: Mapped[str] = mapped_column(String(50), nullable=False)  # "5º Ano A"
+    serie: Mapped[str] = mapped_column(String(50), nullable=False)  # "5º Ano"
+    ano_letivo: Mapped[int] = mapped_column(Integer, nullable=False)  # 2026
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     escola: Mapped[Escola] = relationship(back_populates="turmas")
@@ -79,9 +79,7 @@ class ResponsavelAluno(AuditMixin, Base):
     """Vínculo N:N entre responsável (pai/mãe/tutor) e aluno."""
 
     __tablename__ = "responsavel_aluno"
-    __table_args__ = (
-        UniqueConstraint("responsavel_id", "aluno_id", name="uq_responsavel_aluno"),
-    )
+    __table_args__ = (UniqueConstraint("responsavel_id", "aluno_id", name="uq_responsavel_aluno"),)
 
     responsavel_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

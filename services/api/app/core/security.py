@@ -1,4 +1,5 @@
 """Validação de tokens JWT — RS256 via JWKS do Keycloak (produção) ou HS256 (dev)."""
+
 import time
 
 import httpx
@@ -15,10 +16,7 @@ _JWKS_TTL = 3600.0
 
 
 async def _fetch_jwks() -> dict:
-    url = (
-        f"{settings.keycloak_url}/realms/{settings.keycloak_realm}"
-        "/protocol/openid-connect/certs"
-    )
+    url = f"{settings.keycloak_url}/realms/{settings.keycloak_realm}/protocol/openid-connect/certs"
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, timeout=10)
         resp.raise_for_status()
@@ -35,6 +33,7 @@ async def get_jwks(force_refresh: bool = False) -> dict:
 
 
 # ── Decodificação ─────────────────────────────────────────────────────────────
+
 
 async def decode_token_rs256(token: str) -> dict:
     """Valida JWT RS256 usando a chave pública do Keycloak.
@@ -67,6 +66,7 @@ def decode_token_hs256(token: str) -> dict:
 
 
 # ── Extração de claims ────────────────────────────────────────────────────────
+
 
 def extract_user_id(payload: dict) -> str:
     user_id = payload.get("sub")

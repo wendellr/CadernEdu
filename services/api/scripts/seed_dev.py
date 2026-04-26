@@ -16,19 +16,26 @@ Uso:
     # ou localmente:
     cd services/api && uv run python scripts/seed_dev.py
 """
+
 import asyncio
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 from app.core.config import settings
-from app.domains.identity.models import (
-    Escola, PerfilUsuario, ResponsavelAluno, Secretaria, Turma, Usuario,
-)
 from app.domains.features.models import FeatureFlag, FeatureKey
 from app.domains.gestao.models import Matricula
+from app.domains.identity.models import (
+    Escola,
+    PerfilUsuario,
+    ResponsavelAluno,
+    Secretaria,
+    Turma,
+    Usuario,
+)
 
 engine = create_async_engine(settings.database_url, echo=False)
 Session = async_sessionmaker(engine, expire_on_commit=False)
@@ -121,16 +128,24 @@ async def seed():
             await session.flush()
 
             # ── Vínculos responsável → filhos ─────────────────────────────────
-            session.add_all([
-                ResponsavelAluno(responsavel_id=responsavel.id, aluno_id=aluno1.id),
-                ResponsavelAluno(responsavel_id=responsavel.id, aluno_id=aluno2.id),
-            ])
+            session.add_all(
+                [
+                    ResponsavelAluno(responsavel_id=responsavel.id, aluno_id=aluno1.id),
+                    ResponsavelAluno(responsavel_id=responsavel.id, aluno_id=aluno2.id),
+                ]
+            )
 
             # ── Matrículas ────────────────────────────────────────────────────
-            session.add_all([
-                Matricula(aluno_id=aluno1.id, turma_id=turma_5a.id, ano_letivo=2026, ativo=True),
-                Matricula(aluno_id=aluno2.id, turma_id=turma_3b.id, ano_letivo=2026, ativo=True),
-            ])
+            session.add_all(
+                [
+                    Matricula(
+                        aluno_id=aluno1.id, turma_id=turma_5a.id, ano_letivo=2026, ativo=True
+                    ),
+                    Matricula(
+                        aluno_id=aluno2.id, turma_id=turma_3b.id, ano_letivo=2026, ativo=True
+                    ),
+                ]
+            )
 
             # ── Feature flags ─────────────────────────────────────────────────
             for key in (FeatureKey.agenda_online, FeatureKey.comunicacao):
@@ -150,10 +165,10 @@ async def seed():
         print(f"   Escola     : {escola.nome}")
         print()
         print("   ── Logins de teste (senha: qualquer valor em dev) ──")
-        print(f"   Professor  : professor@teste.edu.br")
+        print("   Professor  : professor@teste.edu.br")
         print(f"   Aluno 1    : aluno@teste.edu.br   → {turma_5a.nome}")
         print(f"   Aluno 2    : aluno2@teste.edu.br  → {turma_3b.nome}")
-        print(f"   Responsável: responsavel@teste.edu.br → 2 filhos")
+        print("   Responsável: responsavel@teste.edu.br → 2 filhos")
 
 
 asyncio.run(seed())

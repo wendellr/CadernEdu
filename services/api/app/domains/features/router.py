@@ -4,7 +4,11 @@ from fastapi import APIRouter, Query, status
 
 from app.core.deps import CurrentUserIdDep, SessionDep
 from app.domains.features.models import FeatureKey
-from app.domains.features.schemas import FeatureFlagResponse, FeatureFlagUpsert, FeatureStatusResponse
+from app.domains.features.schemas import (
+    FeatureFlagResponse,
+    FeatureFlagUpsert,
+    FeatureStatusResponse,
+)
 from app.domains.features.service import FeatureFlagService
 
 router = APIRouter(prefix="/features", tags=["features"])

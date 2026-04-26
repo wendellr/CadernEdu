@@ -5,6 +5,7 @@ Execução:
     cd services/api
     uv run pytest tests/domains/test_pedagogico.py -v
 """
+
 import uuid
 from datetime import date, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,12 +14,17 @@ import pytest
 
 from app.domains.features.models import FeatureKey
 from app.domains.features.schemas import FeatureStatusResponse
-from app.domains.pedagogico.schemas import AgendaDiaResponse, AulaCreate, AulaResponse, AtividadeResponse
+from app.domains.pedagogico.schemas import (
+    AgendaDiaResponse,
+    AtividadeResponse,
+    AulaCreate,
+    AulaResponse,
+)
 from app.domains.pedagogico.service import AgendaService, AulaService
 from app.shared.exceptions import NotFoundError
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def make_turma(turma_id: uuid.UUID, escola_id: uuid.UUID):
     t = MagicMock()
@@ -58,7 +64,9 @@ def make_aula_response(turma_id: uuid.UUID, professor_id: uuid.UUID, data: date)
     )
 
 
-def make_atividade_response(turma_id: uuid.UUID, professor_id: uuid.UUID, prazo: date) -> AtividadeResponse:
+def make_atividade_response(
+    turma_id: uuid.UUID, professor_id: uuid.UUID, prazo: date
+) -> AtividadeResponse:
     return AtividadeResponse(
         id=uuid.uuid4(),
         aula_id=None,
@@ -73,6 +81,7 @@ def make_atividade_response(turma_id: uuid.UUID, professor_id: uuid.UUID, prazo:
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def secretaria_id() -> uuid.UUID:
@@ -95,6 +104,7 @@ def professor_id() -> uuid.UUID:
 
 
 # ── Testes: AulaService ───────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_criar_aula_com_flag_habilitada(turma_id, escola_id, professor_id, secretaria_id):
@@ -124,8 +134,11 @@ async def test_criar_aula_com_flag_habilitada(turma_id, escola_id, professor_id,
 
 
 @pytest.mark.asyncio
-async def test_criar_aula_rejeita_quando_flag_desabilitada(turma_id, escola_id, professor_id, secretaria_id):
+async def test_criar_aula_rejeita_quando_flag_desabilitada(
+    turma_id, escola_id, professor_id, secretaria_id
+):
     from fastapi import HTTPException
+
     session = AsyncMock()
 
     with (
@@ -142,7 +155,9 @@ async def test_criar_aula_rejeita_quando_flag_desabilitada(turma_id, escola_id, 
                 turma_id=turma_id,
                 professor_id=professor_id,
                 secretaria_id=secretaria_id,
-                data=AulaCreate(data=date.today(), disciplina="Português", conteudo="Interpretação"),
+                data=AulaCreate(
+                    data=date.today(), disciplina="Português", conteudo="Interpretação"
+                ),
             )
 
     assert exc.value.status_code == 403
@@ -169,6 +184,7 @@ async def test_criar_aula_turma_inexistente(turma_id, professor_id, secretaria_i
 
 
 # ── Testes: AgendaService ─────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_agenda_agrupa_por_data(turma_id, escola_id, professor_id, secretaria_id):

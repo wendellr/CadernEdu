@@ -3,8 +3,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
-
 # ── Aula ──────────────────────────────────────────────────────────────────────
+
 
 class AulaCreate(BaseModel):
     data: date
@@ -34,6 +34,7 @@ class AulaResponse(BaseModel):
 
 
 # ── Atividade de Casa ─────────────────────────────────────────────────────────
+
 
 class AtividadeCreate(BaseModel):
     aula_id: uuid.UUID | None = None
@@ -65,6 +66,7 @@ class AtividadeResponse(BaseModel):
 
 
 # ── Agenda (visão aluno/família) ──────────────────────────────────────────────
+
 
 class AgendaDiaResponse(BaseModel):
     data: date

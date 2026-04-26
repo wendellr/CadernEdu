@@ -8,6 +8,7 @@ Execução:
     cd services/api
     uv run pytest tests/domains/test_features.py -v
 """
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,8 +18,8 @@ from app.domains.features.models import FeatureKey
 from app.domains.features.schemas import FeatureFlagUpsert
 from app.domains.features.service import FeatureFlagService
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def make_flag(enabled: bool) -> MagicMock:
     f = MagicMock()
@@ -27,6 +28,7 @@ def make_flag(enabled: bool) -> MagicMock:
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def secretaria_id() -> uuid.UUID:
@@ -40,6 +42,7 @@ def escola_id() -> uuid.UUID:
 
 # ── is_enabled: sem nenhuma flag cadastrada ───────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_flag_ausente_retorna_desabilitado(secretaria_id):
     session = AsyncMock()
@@ -47,14 +50,13 @@ async def test_flag_ausente_retorna_desabilitado(secretaria_id):
     with patch("app.domains.features.service.FeatureFlagRepository") as MockRepo:
         MockRepo.return_value.get = AsyncMock(return_value=None)
 
-        result = await FeatureFlagService(session).is_enabled(
-            FeatureKey.comunicacao, secretaria_id
-        )
+        result = await FeatureFlagService(session).is_enabled(FeatureKey.comunicacao, secretaria_id)
 
     assert result.enabled is False
 
 
 # ── is_enabled: apenas flag de secretaria ────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_flag_secretaria_habilitada(secretaria_id):
@@ -63,9 +65,7 @@ async def test_flag_secretaria_habilitada(secretaria_id):
     with patch("app.domains.features.service.FeatureFlagRepository") as MockRepo:
         MockRepo.return_value.get = AsyncMock(return_value=make_flag(True))
 
-        result = await FeatureFlagService(session).is_enabled(
-            FeatureKey.comunicacao, secretaria_id
-        )
+        result = await FeatureFlagService(session).is_enabled(FeatureKey.comunicacao, secretaria_id)
 
     assert result.enabled is True
 
@@ -85,6 +85,7 @@ async def test_flag_secretaria_desabilitada(secretaria_id):
 
 
 # ── is_enabled: hierarquia escola > secretaria ────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_override_escola_habilitado_sobrepoe_secretaria_desabilitada(
@@ -149,6 +150,7 @@ async def test_sem_override_escola_cai_na_secretaria(secretaria_id, escola_id):
 
 
 # ── upsert ────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_upsert_cria_nova_flag(secretaria_id):

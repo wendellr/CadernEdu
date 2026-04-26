@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Query, status
 
 from app.core.deps import CurrentUserIdDep, SessionDep
+from app.domains.identity.repository import UsuarioRepository
 from app.domains.identity.schemas import (
     AlunoSimplificadoResponse,
     EscolaCreate,
@@ -14,13 +15,18 @@ from app.domains.identity.schemas import (
     UsuarioCreate,
     UsuarioResponse,
 )
-from app.domains.identity.repository import UsuarioRepository
-from app.domains.identity.service import EscolaService, SecretariaService, TurmaService, UsuarioService
+from app.domains.identity.service import (
+    EscolaService,
+    SecretariaService,
+    TurmaService,
+    UsuarioService,
+)
 
 router = APIRouter(prefix="/identity", tags=["identity"])
 
 
 # ── Secretarias ───────────────────────────────────────────────────────────────
+
 
 @router.post("/secretarias", response_model=SecretariaResponse, status_code=status.HTTP_201_CREATED)
 async def criar_secretaria(data: SecretariaCreate, session: SessionDep, _: CurrentUserIdDep):
@@ -38,6 +44,7 @@ async def get_secretaria(secretaria_id: uuid.UUID, session: SessionDep, _: Curre
 
 
 # ── Escolas ───────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/secretarias/{secretaria_id}/escolas",
@@ -61,6 +68,7 @@ async def get_escola(escola_id: uuid.UUID, session: SessionDep, _: CurrentUserId
 
 
 # ── Turmas ────────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/escolas/{escola_id}/turmas",
@@ -90,6 +98,7 @@ async def get_turma(turma_id: uuid.UUID, session: SessionDep, _: CurrentUserIdDe
 
 # ── Usuários ──────────────────────────────────────────────────────────────────
 
+
 @router.post("/usuarios", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 async def upsert_usuario(data: UsuarioCreate, session: SessionDep, _: CurrentUserIdDep):
     return await UsuarioService(session).criar_ou_atualizar(data)
@@ -102,14 +111,13 @@ async def get_usuario(usuario_id: uuid.UUID, session: SessionDep, _: CurrentUser
 
 # ── Mobile: família e aluno ───────────────────────────────────────────────────
 
+
 @router.get(
     "/responsaveis/{responsavel_id}/filhos",
     response_model=list[AlunoSimplificadoResponse],
     summary="Lista filhos vinculados a um responsável",
 )
-async def listar_filhos(
-    responsavel_id: uuid.UUID, session: SessionDep, _: CurrentUserIdDep
-):
+async def listar_filhos(responsavel_id: uuid.UUID, session: SessionDep, _: CurrentUserIdDep):
     return await UsuarioRepository(session).listar_filhos_do_responsavel(responsavel_id)
 
 

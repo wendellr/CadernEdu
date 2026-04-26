@@ -20,6 +20,7 @@ router = APIRouter(prefix="/pedagogico", tags=["pedagogico"])
 
 # ── Aulas ─────────────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/turmas/{turma_id}/aulas",
     response_model=AulaResponse,
@@ -71,6 +72,7 @@ async def remover_aula(aula_id: uuid.UUID, session: SessionDep, _: CurrentUserId
 
 # ── Atividades de Casa ────────────────────────────────────────────────────────
 
+
 @router.post(
     "/turmas/{turma_id}/atividades",
     response_model=AtividadeResponse,
@@ -121,6 +123,7 @@ async def remover_atividade(atividade_id: uuid.UUID, session: SessionDep, _: Cur
 
 
 # ── Agenda (visão aluno / família) ────────────────────────────────────────────
+
 
 @router.get(
     "/turmas/{turma_id}/agenda",

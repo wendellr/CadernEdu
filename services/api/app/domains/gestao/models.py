@@ -16,7 +16,9 @@ class Matricula(AuditMixin, Base):
     __tablename__ = "matriculas"
     __table_args__ = (
         UniqueConstraint(
-            "aluno_id", "turma_id", "ano_letivo",
+            "aluno_id",
+            "turma_id",
+            "ano_letivo",
             name="uq_matricula_aluno_turma_ano",
         ),
     )

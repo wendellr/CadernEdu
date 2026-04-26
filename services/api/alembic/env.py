@@ -6,11 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-
 from app.core.config import settings
 from app.shared.base_model import Base
-
-
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -35,11 +32,12 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     # Importa os models só no momento da migration para evitar criação automática de ENUM
-    import app.domains.identity.models  # noqa: F401
-    import app.domains.features.models  # noqa: F401
-    import app.domains.pedagogico.models  # noqa: F401
-    import app.domains.gestao.models  # noqa: F401
     import app.domains.comunicacao.models  # noqa: F401
+    import app.domains.features.models  # noqa: F401
+    import app.domains.gestao.models  # noqa: F401
+    import app.domains.identity.models  # noqa: F401
+    import app.domains.pedagogico.models  # noqa: F401
+
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()

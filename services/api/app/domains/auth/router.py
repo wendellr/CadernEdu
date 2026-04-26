@@ -3,7 +3,8 @@
 Em produção, o login acontece via Keycloak/Gov.br OIDC.
 Este endpoint existe para facilitar testes locais sem Keycloak configurado.
 """
-from datetime import datetime, timedelta, timezone
+
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
@@ -54,7 +55,7 @@ async def login(data: LoginRequest, session: AsyncSession = Depends(get_session)
         )
 
     expires_in = 8 * 3600  # 8 horas
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     claims = {
         "sub": str(usuario.id),

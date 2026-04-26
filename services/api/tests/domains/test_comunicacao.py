@@ -5,6 +5,7 @@ Execução:
     cd services/api
     uv run pytest tests/domains/test_comunicacao.py -v
 """
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,8 +18,8 @@ from app.domains.features.models import FeatureKey
 from app.domains.features.schemas import FeatureStatusResponse
 from app.shared.exceptions import NotFoundError
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def make_turma(turma_id: uuid.UUID, escola_id: uuid.UUID) -> MagicMock:
     t = MagicMock()
@@ -57,6 +58,7 @@ def flag_disabled(secretaria_id: uuid.UUID) -> FeatureStatusResponse:
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def secretaria_id() -> uuid.UUID:
     return uuid.uuid4()
@@ -78,6 +80,7 @@ def remetente_id() -> uuid.UUID:
 
 
 # ── Testes: MensagemService.criar ─────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_criar_mensagem_broadcast_com_flag_habilitada(
@@ -192,6 +195,7 @@ async def test_criar_mensagem_direta_preenche_destinatario(
 
 # ── Testes: MensagemService.listar_por_turma ─────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_listar_mensagens_retorna_lista(turma_id, escola_id, remetente_id, secretaria_id):
     session = AsyncMock()
@@ -213,6 +217,7 @@ async def test_listar_mensagens_retorna_lista(turma_id, escola_id, remetente_id,
 
 
 # ── Testes: MensagemService.remover ──────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_remover_mensagem_deleta_anexos_do_storage(turma_id, remetente_id, secretaria_id):
@@ -241,6 +246,7 @@ async def test_remover_mensagem_deleta_anexos_do_storage(turma_id, remetente_id,
 
 
 # ── Testes: AnexoService.upload ───────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_upload_anexo_content_type_invalido(turma_id, remetente_id):

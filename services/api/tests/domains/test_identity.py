@@ -5,6 +5,7 @@ Execução:
     cd services/api
     uv run pytest tests/domains/test_identity.py -v
 """
+
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -25,8 +26,8 @@ from app.domains.identity.service import (
 )
 from app.shared.exceptions import ConflictError, NotFoundError
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def make_secretaria(secretaria_id: uuid.UUID | None = None) -> MagicMock:
     s = MagicMock()
@@ -35,7 +36,9 @@ def make_secretaria(secretaria_id: uuid.UUID | None = None) -> MagicMock:
     return s
 
 
-def make_escola(escola_id: uuid.UUID | None = None, secretaria_id: uuid.UUID | None = None) -> MagicMock:
+def make_escola(
+    escola_id: uuid.UUID | None = None, secretaria_id: uuid.UUID | None = None
+) -> MagicMock:
     e = MagicMock()
     e.id = escola_id or uuid.uuid4()
     e.secretaria_id = secretaria_id or uuid.uuid4()
@@ -59,6 +62,7 @@ def make_usuario(keycloak_id: str = "kc-abc-123") -> MagicMock:
 
 
 # ── SecretariaService ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_criar_secretaria_sucesso():
@@ -129,6 +133,7 @@ async def test_get_secretaria_or_404_nao_encontrado():
 
 # ── EscolaService ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_criar_escola_sucesso():
     session = AsyncMock()
@@ -170,6 +175,7 @@ async def test_criar_escola_secretaria_inexistente():
 
 # ── TurmaService ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_criar_turma_sucesso():
     session = AsyncMock()
@@ -210,6 +216,7 @@ async def test_criar_turma_escola_inexistente():
 
 
 # ── UsuarioService ────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_criar_usuario_novo():

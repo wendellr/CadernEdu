@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.pedagogico.models import Aula, AtividadeDeCasa
+from app.domains.pedagogico.models import AtividadeDeCasa, Aula
 
 
 class AulaRepository:

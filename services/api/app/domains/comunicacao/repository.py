@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.domains.comunicacao.models import Anexo, Mensagem
-from app.domains.identity.models import ResponsavelAluno
 from app.domains.gestao.models import Matricula
+from app.domains.identity.models import ResponsavelAluno
 
 
 class MensagemRepository:
@@ -74,8 +74,9 @@ class MatriculaRepository:
     async def list_alunos_da_turma(self, turma_id: uuid.UUID) -> list[uuid.UUID]:
         """Retorna IDs dos alunos com matrícula ativa na turma."""
         result = await self.session.execute(
-            select(Matricula.aluno_id)
-            .where(Matricula.turma_id == turma_id, Matricula.ativo.is_(True))
+            select(Matricula.aluno_id).where(
+                Matricula.turma_id == turma_id, Matricula.ativo.is_(True)
+            )
         )
         return list(result.scalars().all())
 

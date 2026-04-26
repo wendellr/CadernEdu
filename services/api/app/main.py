@@ -5,17 +5,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.domains.analytics.router import router as analytics_router
+from app.domains.auth.router import router as auth_router
+from app.domains.comunicacao.router import router as comunicacao_router
+from app.domains.features.router import router as features_router
+from app.domains.gestao.router import router as gestao_router
+from app.domains.identity.router import router as identity_router
+from app.domains.pedagogico.router import router as pedagogico_router
 from app.shared.exceptions import register_exception_handlers
 
-from app.domains.auth.router import router as auth_router
-from app.domains.identity.router import router as identity_router
-from app.domains.features.router import router as features_router
-from app.domains.pedagogico.router import router as pedagogico_router
-from app.domains.comunicacao.router import router as comunicacao_router
-from app.domains.gestao.router import router as gestao_router
-from app.domains.analytics.router import router as analytics_router
-
 # ── Logging ───────────────────────────────────────────────────────────────────
+
 
 def _configure_logging() -> None:
     logging.basicConfig(
@@ -30,8 +30,11 @@ def _configure_logging() -> None:
     # Pool do SQLAlchemy também polui sem agregar valor em dev
     logging.getLogger("sqlalchemy.pool").setLevel(logging.WARNING)
 
-    renderer = structlog.processors.JSONRenderer() if settings.is_production \
+    renderer = (
+        structlog.processors.JSONRenderer()
+        if settings.is_production
         else structlog.dev.ConsoleRenderer(colors=True)
+    )
 
     structlog.configure(
         processors=[

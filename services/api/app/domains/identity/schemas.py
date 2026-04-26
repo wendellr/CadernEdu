@@ -5,8 +5,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.domains.identity.models import PerfilUsuario
 
-
 # ── Secretaria ────────────────────────────────────────────────────────────────
+
 
 class SecretariaCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
@@ -29,6 +29,7 @@ class SecretariaResponse(BaseModel):
 
 # ── Escola ────────────────────────────────────────────────────────────────────
 
+
 class EscolaCreate(BaseModel):
     nome: str = Field(min_length=2, max_length=200)
     codigo_inep: str | None = Field(default=None, pattern=r"^\d{8}$")
@@ -46,6 +47,7 @@ class EscolaResponse(BaseModel):
 
 
 # ── Turma ─────────────────────────────────────────────────────────────────────
+
 
 class TurmaCreate(BaseModel):
     nome: str = Field(min_length=1, max_length=50)
@@ -67,6 +69,7 @@ class TurmaResponse(BaseModel):
 
 # ── Aluno (visão simplificada para família) ───────────────────────────────────
 
+
 class AlunoSimplificadoResponse(BaseModel):
     id: uuid.UUID
     nome: str
@@ -76,6 +79,7 @@ class AlunoSimplificadoResponse(BaseModel):
 
 
 # ── Usuario ───────────────────────────────────────────────────────────────────
+
 
 class UsuarioCreate(BaseModel):
     keycloak_id: str

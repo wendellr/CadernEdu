@@ -16,6 +16,7 @@ router = APIRouter(prefix="/comunicacao", tags=["comunicacao"])
 
 # ── Mensagens ─────────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/turmas/{turma_id}/mensagens",
     response_model=MensagemResponse,
@@ -78,6 +79,7 @@ async def remover_mensagem(
 
 
 # ── Anexos ────────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/mensagens/{mensagem_id}/anexos",

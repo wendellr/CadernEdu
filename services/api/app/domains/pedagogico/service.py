@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.features.models import FeatureKey
 from app.domains.features.service import FeatureFlagService
 from app.domains.identity.repository import TurmaRepository
-from app.domains.pedagogico.models import Aula, AtividadeDeCasa
+from app.domains.pedagogico.models import AtividadeDeCasa, Aula
 from app.domains.pedagogico.repository import AtividadeRepository, AulaRepository
 from app.domains.pedagogico.schemas import (
     AgendaDiaResponse,
@@ -17,7 +17,7 @@ from app.domains.pedagogico.schemas import (
     AulaCreate,
     AulaUpdate,
 )
-from app.shared.exceptions import ForbiddenError, NotFoundError
+from app.shared.exceptions import NotFoundError
 
 
 async def _verificar_agenda_online(
@@ -185,8 +185,8 @@ class AgendaService:
         return [
             AgendaDiaResponse(
                 data=d,
-                aulas=aulas_por_dia.get(d, []),          # type: ignore[arg-type]
-                atividades=atividades_por_dia.get(d, []), # type: ignore[arg-type]
+                aulas=aulas_por_dia.get(d, []),  # type: ignore[arg-type]
+                atividades=atividades_por_dia.get(d, []),  # type: ignore[arg-type]
             )
             for d in todas_datas
         ]

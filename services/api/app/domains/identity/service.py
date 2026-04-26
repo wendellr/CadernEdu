@@ -3,7 +3,12 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.identity.models import Escola, Secretaria, Turma, Usuario
-from app.domains.identity.repository import EscolaRepository, SecretariaRepository, TurmaRepository, UsuarioRepository
+from app.domains.identity.repository import (
+    EscolaRepository,
+    SecretariaRepository,
+    TurmaRepository,
+    UsuarioRepository,
+)
 from app.domains.identity.schemas import EscolaCreate, SecretariaCreate, TurmaCreate, UsuarioCreate
 from app.shared.exceptions import ConflictError, NotFoundError
 
@@ -71,7 +76,9 @@ class TurmaService:
             raise NotFoundError("Turma", turma_id)
         return turma
 
-    async def listar_por_escola(self, escola_id: uuid.UUID, ano_letivo: int | None = None) -> list[Turma]:
+    async def listar_por_escola(
+        self, escola_id: uuid.UUID, ano_letivo: int | None = None
+    ) -> list[Turma]:
         return await self.repo.list_by_escola(escola_id, ano_letivo)
 
 

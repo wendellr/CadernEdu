@@ -30,10 +30,16 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# Arquivos gerados pelo Alembic não precisam de linting estrito
+exclude = ["alembic/versions/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # Depends/Query em defaults é padrão válido do FastAPI
+    "UP046",  # Generic[T] → type params (Python 3.13+, ainda não obrigatório)
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

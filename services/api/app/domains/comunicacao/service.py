@@ -107,7 +107,7 @@ class AnexoService:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Tipo de arquivo não permitido: {content_type}. "
-                       "Aceitos: imagens, vídeos e PDF.",
+                "Aceitos: imagens, vídeos e PDF.",
             )
 
         data = await file.read()
@@ -117,8 +117,14 @@ class AnexoService:
                 detail="Arquivo excede o limite de 50 MB.",
             )
 
-        ext = (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
-        key = f"comunicacao/{mensagem_id}/{uuid.uuid4()}.{ext}" if ext else f"comunicacao/{mensagem_id}/{uuid.uuid4()}"
+        ext = (
+            (file.filename or "").rsplit(".", 1)[-1].lower() if "." in (file.filename or "") else ""
+        )
+        key = (
+            f"comunicacao/{mensagem_id}/{uuid.uuid4()}.{ext}"
+            if ext
+            else f"comunicacao/{mensagem_id}/{uuid.uuid4()}"
+        )
 
         await storage.upload_file(key, data, content_type)
 

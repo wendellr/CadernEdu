@@ -1,4 +1,5 @@
 """Cliente assíncrono para MinIO/S3 (aioboto3)."""
+
 import aioboto3
 from botocore.config import Config
 
@@ -7,8 +8,13 @@ from app.core.config import settings
 _session = aioboto3.Session()
 
 _ALLOWED_CONTENT_TYPES = {
-    "image/jpeg", "image/png", "image/gif", "image/webp",
-    "video/mp4", "video/quicktime", "video/webm",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "video/mp4",
+    "video/quicktime",
+    "video/webm",
     "application/pdf",
 }
 

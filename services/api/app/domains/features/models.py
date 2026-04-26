@@ -1,14 +1,14 @@
 import enum
 import uuid
 
-from sqlalchemy import Boolean, Enum, ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.base_model import AuditMixin, Base
 
 
-class FeatureKey(str, enum.Enum):
+class FeatureKey(enum.StrEnum):
     """Chaves de funcionalidade disponíveis na plataforma."""
 
     # Módulos baseline — obrigatórios em todo contrato
@@ -38,7 +38,9 @@ class FeatureFlag(AuditMixin, Base):
     __tablename__ = "feature_flags"
     __table_args__ = (
         UniqueConstraint(
-            "feature_key", "secretaria_id", "escola_id",
+            "feature_key",
+            "secretaria_id",
+            "escola_id",
             name="uq_feature_flags_key_secretaria_escola",
         ),
     )

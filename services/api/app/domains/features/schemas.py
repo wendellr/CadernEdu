@@ -26,6 +26,7 @@ class FeatureFlagResponse(BaseModel):
 
 class FeatureStatusResponse(BaseModel):
     """Resposta rápida para verificar se uma feature está ativa."""
+
     feature_key: FeatureKey
     secretaria_id: uuid.UUID
     escola_id: uuid.UUID | None

@@ -48,9 +48,7 @@ async def get_current_user_id(payload: PayloadDep) -> str:
     try:
         return extract_user_id(payload)
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
 async def get_secretaria_id(payload: PayloadDep) -> uuid.UUID:
