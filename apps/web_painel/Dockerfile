@@ -9,10 +9,10 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/web_painel/package.json        ./apps/web_painel/
+COPY apps/web_painel/package.json            ./apps/web_painel/
 COPY packages/design_system_web/package.json ./packages/design_system_web/
 
-RUN pnpm install --frozen-lockfile --shamefully-hoist \
+RUN pnpm install --no-frozen-lockfile --shamefully-hoist \
     --filter @cadernedu/web_painel...
 
 # ── 2. Build ──────────────────────────────────────────────────────────────────
@@ -21,8 +21,7 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=deps /app/node_modules             ./node_modules
-COPY --from=deps /app/apps/web_painel/node_modules ./apps/web_painel/node_modules
+COPY --from=deps /app/node_modules ./node_modules
 
 COPY packages/ ./packages/
 COPY apps/web_painel ./apps/web_painel
@@ -33,8 +32,11 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 WORKDIR /app/apps/web_painel
 RUN pnpm build
 
+RUN test -f .next/standalone/server.js \
+    || (echo "ERRO: .next/standalone/server.js não gerado — verifique next.config.js" && exit 1)
+
 # ── 3. Runner ─────────────────────────────────────────────────────────────────
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

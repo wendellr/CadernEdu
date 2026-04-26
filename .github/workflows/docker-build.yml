@@ -60,8 +60,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}/web_site:latest
             ${{ env.IMAGE_PREFIX }}/web_site:${{ steps.tag.outputs.sha }}
-          cache-from: type=gha,scope=web_site
-          cache-to: type=gha,scope=web_site,mode=max
+          cache-from: type=gha,scope=web_site-v2
+          cache-to: type=gha,scope=web_site-v2,mode=max
 
       # ── Web painel ───────────────────────────────────────────────────────────
 
@@ -76,8 +76,8 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}/web_painel:latest
             ${{ env.IMAGE_PREFIX }}/web_painel:${{ steps.tag.outputs.sha }}
-          cache-from: type=gha,scope=web_painel
-          cache-to: type=gha,scope=web_painel,mode=max
+          cache-from: type=gha,scope=web_painel-v2
+          cache-to: type=gha,scope=web_painel-v2,mode=max
 
       - name: Summary
         run: |
