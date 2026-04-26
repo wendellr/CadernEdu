@@ -1,16 +1,10 @@
 # CadernEdu — Stack para Portainer (produção)
 #
-# Arquitetura:
-#   Nginx no host Proxmox (TLS + reverse proxy)
-#     └─ Esta VM com Docker
-#          ├─ api        exposto em VM_IP:8000
-#          ├─ web_site   exposto em VM_IP:3000
-#          └─ web_painel exposto em VM_IP:3001
+# Portainer clona o repo e builda as imagens diretamente no servidor.
+# Sem GitHub Actions, sem registry externo.
 #
-# O Nginx do host cuida de TLS e subdomínios — sem Traefik aqui.
-#
-# Como usar no Portainer:
-#   Stacks → Add stack → Git Repository
+# Como usar:
+#   Portainer → Stacks → Add stack → Git Repository
 #   Repository URL : https://github.com/SEU_USUARIO/cadernedu
 #   Compose path   : infra/docker-compose.portainer.yml
 #   Env vars       : importar .env.portainer
@@ -37,7 +31,7 @@ volumes:
 
 services:
 
-  # ── Datastores (rede interna — sem acesso externo direto) ────────────────────
+  # ── Datastores ───────────────────────────────────────────────────────────────
 
   postgres:
     image: postgres:16-alpine
@@ -127,12 +121,14 @@ services:
   # ── API ──────────────────────────────────────────────────────────────────────
 
   api:
-    image: ghcr.io/${GITHUB_OWNER}/cadernedu/api:${IMAGE_TAG:-latest}
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
     container_name: cadernedu-api
     restart: unless-stopped
     networks: [backend, data]
     ports:
-      - "18000:8000"  # Nginx do host aponta para VM_IP:18000
+      - "18000:8000"
     environment:
       DATABASE_URL:       postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL:          redis://:${REDIS_PASSWORD}@redis:6379
@@ -162,27 +158,23 @@ services:
       retries: 5
       start_period: 30s
     deploy:
-      replicas: 1
       resources:
         limits:
           memory: 512M
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
 
   # ── Web apps ─────────────────────────────────────────────────────────────────
 
   web_site:
-    image: ghcr.io/${GITHUB_OWNER}/cadernedu/web_site:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: apps/web_site/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
     container_name: cadernedu-web_site
     restart: unless-stopped
     networks: [backend]
     ports:
-      - "13000:3000"  # Nginx do host aponta para VM_IP:13000
-    environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
+      - "13000:3000"
     depends_on:
       api:
         condition: service_healthy
@@ -192,15 +184,16 @@ services:
           memory: 256M
 
   web_painel:
-    image: ghcr.io/${GITHUB_OWNER}/cadernedu/web_painel:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: apps/web_painel/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
     container_name: cadernedu-web_painel
     restart: unless-stopped
     networks: [backend]
     ports:
-      - "13001:3001"  # Nginx do host aponta para VM_IP:13001
-    environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
+      - "13001:3001"
     depends_on:
       api:
         condition: service_healthy
