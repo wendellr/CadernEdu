@@ -41,9 +41,8 @@ jobs:
 
       - name: Start infra (postgres, redis, minio)
         working-directory: infra
-        env:
-          SECRET_KEY: ci-secret-only-for-testing-not-production
         run: |
+          export SECRET_KEY=ci-secret-only-for-testing-not-production
           docker compose \
             -f docker-compose.yml \
             -f docker-compose.ci.yml \
@@ -89,6 +88,7 @@ jobs:
         if: always()
         working-directory: infra
         run: |
+          export SECRET_KEY=ci-secret-only-for-testing-not-production
           docker compose \
             -f docker-compose.yml \
             -f docker-compose.ci.yml \
