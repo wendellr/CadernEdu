@@ -54,6 +54,9 @@ jobs:
           context: .
           file: apps/web_site/Dockerfile
           push: true
+          # NEXT_PUBLIC_API_URL é substituída em build time pelo Next.js
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.${{ vars.DOMAIN }}/v1
           tags: |
             ${{ env.IMAGE_PREFIX }}/web_site:latest
             ${{ env.IMAGE_PREFIX }}/web_site:${{ steps.tag.outputs.sha }}
@@ -68,6 +71,8 @@ jobs:
           context: .
           file: apps/web_painel/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.${{ vars.DOMAIN }}/v1
           tags: |
             ${{ env.IMAGE_PREFIX }}/web_painel:latest
             ${{ env.IMAGE_PREFIX }}/web_painel:${{ steps.tag.outputs.sha }}
