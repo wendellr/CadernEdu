@@ -21,6 +21,17 @@ jobs:
       run:
         working-directory: services/api
 
+    # SECRET_KEY no nível do job — todos os steps herdam automaticamente
+    env:
+      SECRET_KEY: ci-secret-only-for-testing-not-production
+      DATABASE_URL: postgresql+asyncpg://cadernedu:dev@localhost:5432/cadernedu_dev
+      REDIS_URL: redis://localhost:6379
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: cadernedu
+      MINIO_SECRET_KEY: dev_secret_change_me
+      MINIO_BUCKET: cadernedu-dev
+      ENVIRONMENT: ci
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +39,6 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
-          # uv.lock não existe ainda — pular cache até o arquivo ser commitado
           enable-cache: false
 
       - name: Install dependencies
@@ -42,7 +52,6 @@ jobs:
       - name: Start infra (postgres, redis, minio)
         working-directory: infra
         run: |
-          export SECRET_KEY=ci-secret-only-for-testing-not-production
           docker compose \
             -f docker-compose.yml \
             -f docker-compose.ci.yml \
@@ -52,28 +61,20 @@ jobs:
         working-directory: infra
         run: |
           for i in $(seq 1 30); do
-            docker compose \
+            STATUS=$(docker compose \
               -f docker-compose.yml \
               -f docker-compose.ci.yml \
-              exec -T postgres pg_isready -U cadernedu -d cadernedu_dev && break
+              ps postgres --format json | python3 -c \
+              "import sys,json; d=json.load(sys.stdin); print(d[0].get('Health',''))" 2>/dev/null || echo "")
+            [ "$STATUS" = "healthy" ] && echo "Postgres pronto!" && break
+            echo "Aguardando postgres... ($i/30)"
             sleep 2
           done
 
       - name: Run migrations
-        env:
-          DATABASE_URL: postgresql+asyncpg://cadernedu:dev@localhost:5432/cadernedu_dev
         run: uv run alembic upgrade head
 
       - name: Run tests
-        env:
-          DATABASE_URL:     postgresql+asyncpg://cadernedu:dev@localhost:5432/cadernedu_dev
-          REDIS_URL:        redis://localhost:6379
-          MINIO_ENDPOINT:   localhost:9000
-          MINIO_ACCESS_KEY: cadernedu
-          MINIO_SECRET_KEY: dev_secret_change_me
-          MINIO_BUCKET:     cadernedu-dev
-          SECRET_KEY:       ci-secret-only-for-testing-not-production
-          ENVIRONMENT:      ci
         run: uv run pytest --cov --cov-report=xml -q
         continue-on-error: true  # testes ainda em construção (meta: 70% cobertura)
 
@@ -88,7 +89,6 @@ jobs:
         if: always()
         working-directory: infra
         run: |
-          export SECRET_KEY=ci-secret-only-for-testing-not-production
           docker compose \
             -f docker-compose.yml \
             -f docker-compose.ci.yml \
