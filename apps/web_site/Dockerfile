@@ -21,7 +21,6 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# workspace root necessário para pnpm resolver binários corretamente
 COPY package.json pnpm-workspace.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
 
@@ -31,15 +30,10 @@ COPY apps/web_site ./apps/web_site
 ARG NEXT_PUBLIC_API_URL=https://api.placeholder.com/v1
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-# roda do root com --filter para pnpm resolver o workspace
 RUN pnpm --filter @cadernedu/web_site build
 
-# Garante que standalone foi gerado
-RUN test -f apps/web_site/.next/standalone/server.js \
-    || (echo "ERRO: server.js não gerado. Verifique output: 'standalone' no next.config.js" && exit 1)
-
 # ── 3. Runner ─────────────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -47,13 +41,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN addgroup --system --gid 1001 nodejs \
- && adduser  --system --uid 1001 nextjs
+# workspace root para next start funcionar
+COPY package.json pnpm-workspace.yaml ./
+COPY --from=deps /app/node_modules ./node_modules
 
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/public               ./public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/standalone     ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/static         ./.next/static
+COPY packages/ ./packages/
+COPY --from=builder /app/apps/web_site/public       ./apps/web_site/public
+COPY --from=builder /app/apps/web_site/.next        ./apps/web_site/.next
+COPY --from=builder /app/apps/web_site/next.config.js ./apps/web_site/next.config.js
+COPY --from=builder /app/apps/web_site/package.json   ./apps/web_site/package.json
 
-USER nextjs
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node_modules/.bin/next", "start", "--dir", "apps/web_site", "-p", "3000"]
