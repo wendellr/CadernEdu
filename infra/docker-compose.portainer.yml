@@ -1,0 +1,210 @@
+# CadernEdu — Stack para Portainer (produção)
+#
+# Arquitetura:
+#   Nginx no host Proxmox (TLS + reverse proxy)
+#     └─ Esta VM com Docker
+#          ├─ api        exposto em VM_IP:8000
+#          ├─ web_site   exposto em VM_IP:3000
+#          └─ web_painel exposto em VM_IP:3001
+#
+# O Nginx do host cuida de TLS e subdomínios — sem Traefik aqui.
+#
+# Como usar no Portainer:
+#   Stacks → Add stack → Git Repository
+#   Repository URL : https://github.com/SEU_USUARIO/cadernedu
+#   Compose path   : infra/docker-compose.portainer.yml
+#   Env vars       : importar .env.portainer
+#
+# O app mobile (Flutter) não é um serviço — não consta aqui.
+
+name: cadernedu
+
+networks:
+  backend:
+    driver: bridge
+  data:
+    driver: bridge
+    internal: true
+
+volumes:
+  pgdata:
+    labels:
+      com.cadernedu.backup: "true"
+  redisdata: {}
+  miniodata:
+    labels:
+      com.cadernedu.backup: "true"
+
+services:
+
+  # ── Datastores (rede interna — sem acesso externo direto) ────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: cadernedu-postgres
+    restart: unless-stopped
+    networks: [data]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: cadernedu-redis
+    restart: unless-stopped
+    networks: [data]
+    volumes:
+      - redisdata:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  minio:
+    image: minio/minio:latest
+    container_name: cadernedu-minio
+    restart: unless-stopped
+    networks: [data, backend]
+    volumes:
+      - miniodata:/data
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: cadernedu-minio-init
+    restart: "no"
+    networks: [data]
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET:     ${MINIO_BUCKET}
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $$MINIO_ACCESS_KEY $$MINIO_SECRET_KEY &&
+        mc mb --ignore-existing local/$$MINIO_BUCKET &&
+        mc anonymous set download local/$$MINIO_BUCKET/public
+      "
+
+  # ── API ──────────────────────────────────────────────────────────────────────
+
+  api:
+    image: ghcr.io/${GITHUB_OWNER}/cadernedu/api:${IMAGE_TAG:-latest}
+    container_name: cadernedu-api
+    restart: unless-stopped
+    networks: [backend, data]
+    ports:
+      - "8000:8000"   # Nginx do host aponta para VM_IP:8000
+    environment:
+      DATABASE_URL:       postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL:          redis://:${REDIS_PASSWORD}@redis:6379
+      SECRET_KEY:         ${SECRET_KEY}
+      KEYCLOAK_URL:       ${KEYCLOAK_URL:-disabled}
+      KEYCLOAK_REALM:     ${KEYCLOAK_REALM:-cadernedu}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-cadernedu-api}
+      MINIO_ENDPOINT:     minio:9000
+      MINIO_ACCESS_KEY:   ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY:   ${MINIO_SECRET_KEY}
+      MINIO_BUCKET:       ${MINIO_BUCKET}
+      MINIO_SECURE:       "false"
+      ENVIRONMENT:        production
+      DEBUG:              "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ── Web apps ─────────────────────────────────────────────────────────────────
+
+  web_site:
+    image: ghcr.io/${GITHUB_OWNER}/cadernedu/web_site:${IMAGE_TAG:-latest}
+    container_name: cadernedu-web_site
+    restart: unless-stopped
+    networks: [backend]
+    ports:
+      - "3000:3000"   # Nginx do host aponta para VM_IP:3000
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  web_painel:
+    image: ghcr.io/${GITHUB_OWNER}/cadernedu/web_painel:${IMAGE_TAG:-latest}
+    container_name: cadernedu-web_painel
+    restart: unless-stopped
+    networks: [backend]
+    ports:
+      - "3001:3001"   # Nginx do host aponta para VM_IP:3001
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M

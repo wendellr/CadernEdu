@@ -1,0 +1,188 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── API Python (FastAPI) ────────────────────────────────────────────────────
+
+  api:
+    name: API — lint, migrate, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint (ruff)
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Start infra (postgres, redis, minio)
+        working-directory: infra
+        env:
+          SECRET_KEY: ci-secret-only-for-testing-not-production
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.ci.yml \
+            up -d postgres redis minio minio-init
+
+      - name: Wait for services
+        working-directory: infra
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.ci.yml \
+            wait minio-init || true
+          # Aguarda postgres ficar saudável
+          for i in $(seq 1 30); do
+            docker compose \
+              -f docker-compose.yml \
+              -f docker-compose.ci.yml \
+              exec -T postgres pg_isready -U cadernedu -d cadernedu_dev && break
+            sleep 2
+          done
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://cadernedu:dev@localhost:5432/cadernedu_dev
+        run: uv run alembic upgrade head
+
+      - name: Run tests
+        env:
+          DATABASE_URL:    postgresql+asyncpg://cadernedu:dev@localhost:5432/cadernedu_dev
+          REDIS_URL:       redis://localhost:6379
+          MINIO_ENDPOINT:  localhost:9000
+          MINIO_ACCESS_KEY: cadernedu
+          MINIO_SECRET_KEY: dev_secret_change_me
+          MINIO_BUCKET:    cadernedu-dev
+          SECRET_KEY:      ci-secret-only-for-testing-not-production
+          ENVIRONMENT:     ci
+        run: uv run pytest --cov --cov-report=xml -q
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: services/api/coverage.xml
+          flags: api
+        continue-on-error: true
+
+      - name: Stop infra
+        if: always()
+        working-directory: infra
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.ci.yml \
+            down -v
+
+  # ── Web (Next.js) ───────────────────────────────────────────────────────────
+
+  web:
+    name: Web — lint, type-check, build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build web_site
+        run: pnpm --filter @cadernedu/web_site build
+
+  # ── Flutter ─────────────────────────────────────────────────────────────────
+
+  flutter:
+    name: Flutter — analyze & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.22.x"
+          channel: stable
+          cache: true
+
+      - name: Install Melos
+        run: dart pub global activate melos
+
+      - name: Bootstrap
+        run: melos bootstrap
+
+      - name: Analyze
+        run: melos run analyze
+
+      - name: Test
+        run: melos run test
+
+  # ── Security ─────────────────────────────────────────────────────────────────
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Secrets scan (TruffleHog)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.before }}
+          head: ${{ github.sha }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: JS dependency audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Python dependency audit (pip-audit)
+        uses: pypa/gh-action-pip-audit@v1
+        with:
+          inputs: services/api/pyproject.toml
+        continue-on-error: true

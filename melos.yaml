@@ -1,0 +1,35 @@
+name: cadernedu_flutter
+
+packages:
+  - apps/mobile_*
+  - packages/design_system_flutter
+  - packages/api_client_dart
+
+command:
+  bootstrap:
+    runPubGetInParallel: true
+
+scripts:
+  analyze:
+    description: Analisa todos os pacotes Dart/Flutter
+    run: melos exec -- "flutter analyze"
+
+  test:
+    description: Roda os testes em todos os pacotes
+    run: melos exec --concurrency=1 -- "flutter test"
+
+  format:
+    description: Formata código Dart
+    run: melos exec -- "dart format ."
+
+  build:android:
+    description: Build APK staging do app aluno
+    run: melos exec --scope=mobile_aluno -- "flutter build apk --flavor staging"
+
+  build:ios:
+    description: Build iOS staging do app aluno
+    run: melos exec --scope=mobile_aluno -- "flutter build ios --flavor staging --no-codesign"
+
+  clean:
+    description: Limpa build artifacts
+    run: melos exec -- "flutter clean"

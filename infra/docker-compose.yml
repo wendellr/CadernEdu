@@ -1,0 +1,321 @@
+# CadernEdu — Docker Compose base
+#
+# Este arquivo é a definição canônica de todos os serviços.
+# NÃO execute diretamente — use os overlays:
+#
+#   Dev:  docker compose up -d                         (carrega override.yml automaticamente)
+#   CI:   docker compose -f docker-compose.yml \
+#                        -f docker-compose.ci.yml up -d
+#   Full: docker compose --profile full up -d          (inclui Keycloak + Mailhog)
+
+# Nome fixo do projeto — garante que as redes se chamem sempre
+# cadernedu_proxy, cadernedu_backend, cadernedu_data
+# independente do diretório de onde o compose é executado.
+name: cadernedu
+
+networks:
+  # Tráfego externo: Traefik ↔ serviços públicos
+  proxy:
+    driver: bridge
+
+  # Comunicação interna: API ↔ banco, redis, minio, keycloak
+  backend:
+    driver: bridge
+
+  # Apenas datastores — sem acesso direto da camada proxy
+  data:
+    driver: bridge
+    internal: true
+
+volumes:
+  pgdata:
+    labels:
+      com.cadernedu.backup: "true"
+      com.cadernedu.service: postgres
+  redisdata:
+    labels:
+      com.cadernedu.service: redis
+  miniodata:
+    labels:
+      com.cadernedu.backup: "true"
+      com.cadernedu.service: minio
+  letsencrypt:
+    labels:
+      com.cadernedu.service: traefik
+
+services:
+
+  # ── Reverse proxy ────────────────────────────────────────────────────────────
+
+  traefik:
+    image: traefik:v3.0
+    container_name: cadernedu-traefik
+    restart: unless-stopped
+    networks: [proxy, backend]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - letsencrypt:/letsencrypt
+    labels:
+      traefik.enable: "true"
+      # Dashboard — acessível em http://traefik.localhost/dashboard/
+      traefik.http.routers.traefik.rule: "Host(`traefik.localhost`)"
+      traefik.http.routers.traefik.service: "api@internal"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ── Datastores (rede data — internal) ────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: cadernedu-postgres
+    restart: unless-stopped
+    networks: [data]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-cadernedu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev}
+      POSTGRES_DB:       ${POSTGRES_DB:-cadernedu_dev}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cadernedu} -d ${POSTGRES_DB:-cadernedu_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: cadernedu-redis
+    restart: unless-stopped
+    networks: [data]
+    volumes:
+      - redisdata:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  minio:
+    image: minio/minio:latest
+    container_name: cadernedu-minio
+    restart: unless-stopped
+    networks: [data, backend]
+    volumes:
+      - miniodata:/data
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ACCESS_KEY:-cadernedu}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-dev_secret_change_me}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.minio-console.rule: "Host(`minio.localhost`)"
+      traefik.http.routers.minio-console.service: minio-console
+      traefik.http.services.minio-console.loadbalancer.server.port: "9001"
+      traefik.docker.network: cadernedu_backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Cria o bucket padrão na primeira subida
+  minio-init:
+    image: minio/mc:latest
+    container_name: cadernedu-minio-init
+    restart: "no"
+    networks: [data]
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-cadernedu}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-dev_secret_change_me}
+      MINIO_BUCKET:     ${MINIO_BUCKET:-cadernedu-dev}
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $$MINIO_ACCESS_KEY $$MINIO_SECRET_KEY &&
+        mc mb --ignore-existing local/$$MINIO_BUCKET &&
+        mc anonymous set download local/$$MINIO_BUCKET/public
+      "
+
+  # ── API FastAPI ──────────────────────────────────────────────────────────────
+
+  api:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
+    image: cadernedu/api:${IMAGE_TAG:-local}
+    container_name: cadernedu-api
+    restart: unless-stopped
+    networks: [proxy, backend, data]
+    environment:
+      DATABASE_URL:    postgresql+asyncpg://${POSTGRES_USER:-cadernedu}:${POSTGRES_PASSWORD:-dev}@postgres:5432/${POSTGRES_DB:-cadernedu_dev}
+      REDIS_URL:       redis://redis:6379
+      SECRET_KEY:      ${SECRET_KEY:?SECRET_KEY obrigatorio}
+      KEYCLOAK_URL:    http://keycloak:8080
+      KEYCLOAK_REALM:  ${KEYCLOAK_REALM:-cadernedu}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-cadernedu-api}
+      MINIO_ENDPOINT:  minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-cadernedu}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-dev_secret_change_me}
+      MINIO_BUCKET:    ${MINIO_BUCKET:-cadernedu-dev}
+      MINIO_SECURE:    ${MINIO_SECURE:-false}
+      ENVIRONMENT:     ${ENVIRONMENT:-development}
+      DEBUG:           ${DEBUG:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.api.rule: "Host(`api.localhost`)"
+      traefik.http.services.api.loadbalancer.server.port: "8000"
+      traefik.docker.network: cadernedu_proxy
+    deploy:
+      # Em prod: aumentar replicas para escalar horizontalmente
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ── Apps web (Next.js) ───────────────────────────────────────────────────────
+
+  web_site:
+    build:
+      context: ..               # raiz do monorepo
+      dockerfile: apps/web_site/Dockerfile
+    image: cadernedu/web_site:${IMAGE_TAG:-local}
+    container_name: cadernedu-web_site
+    restart: unless-stopped
+    networks: [proxy]
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api.localhost
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.web_site.rule: "Host(`cadernedu.localhost`)"
+      traefik.http.services.web_site.loadbalancer.server.port: "3000"
+      traefik.docker.network: cadernedu_proxy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  web_painel:
+    build:
+      context: ..
+      dockerfile: apps/web_painel/Dockerfile
+    image: cadernedu/web_painel:${IMAGE_TAG:-local}
+    container_name: cadernedu-web_painel
+    restart: unless-stopped
+    networks: [proxy]
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api.localhost
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.web_painel.rule: "Host(`painel.localhost`)"
+      traefik.http.services.web_painel.loadbalancer.server.port: "3001"
+      traefik.docker.network: cadernedu_proxy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ── Serviços opcionais (--profile full) ──────────────────────────────────────
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: cadernedu-keycloak
+    restart: unless-stopped
+    profiles: [full]
+    networks: [proxy, backend, data]
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN:          ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB:                   postgres
+      KC_DB_URL:               jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME:          ${POSTGRES_USER:-cadernedu}
+      KC_DB_PASSWORD:          ${POSTGRES_PASSWORD:-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.keycloak.rule: "Host(`keycloak.localhost`)"
+      traefik.http.services.keycloak.loadbalancer.server.port: "8080"
+      traefik.docker.network: cadernedu_proxy
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: cadernedu-mailhog
+    restart: unless-stopped
+    profiles: [full]
+    networks: [proxy, backend]
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.mailhog.rule: "Host(`mailhog.localhost`)"
+      traefik.http.services.mailhog.loadbalancer.server.port: "8025"
+      traefik.docker.network: cadernedu_proxy
+    deploy:
+      resources:
+        limits:
+          memory: 64M

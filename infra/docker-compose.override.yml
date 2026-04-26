@@ -1,0 +1,93 @@
+# docker-compose.override.yml — Dev local
+#
+# Carregado automaticamente junto com docker-compose.yml.
+# Adiciona: portas diretas, volume mounts para hot-reload,
+# limites relaxados e ferramentas de debug.
+
+services:
+
+  traefik:
+    ports:
+      - "80:80"           # HTTP — rotas via hostname (*.localhost)
+      - "8080:8080"       # Dashboard: http://localhost:8080/dashboard/
+
+  # Expõe datastores para acesso direto por ferramentas (DBeaver, RedisInsight, etc.)
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  minio:
+    ports:
+      - "9000:9000"       # API S3
+      - "9001:9001"       # Console: http://localhost:9001
+
+  api:
+    ports:
+      - "8000:8000"       # Acesso direto: http://localhost:8000/docs
+    volumes:
+      - ../services/api:/app
+    environment:
+      DEBUG: "true"
+      ENVIRONMENT: development
+      # SECRET_KEY com valor padrão aceitável em dev — sem precisar de .env
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production-min-32-chars}
+    # Sem limite de réplicas em dev — sempre 1
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G    # Mais folgado em dev
+
+  web_site:
+    build:
+      target: deps
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    volumes:
+      - ../apps/web_site:/app/apps/web_site   # monta tudo (src, tsconfig, configs)
+      - /app/apps/web_site/node_modules        # preserva node_modules da imagem
+      - ../packages:/app/packages
+    working_dir: /app/apps/web_site
+    command: sh -c "pnpm dev"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  web_painel:
+    build:
+      target: deps
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000/v1
+    volumes:
+      - ../apps/web_painel:/app/apps/web_painel
+      - /app/apps/web_painel/node_modules
+      - ../packages:/app/packages
+    working_dir: /app/apps/web_painel
+    command: sh -c "pnpm dev"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Keycloak e Mailhog sobem automaticamente em dev sem precisar de --profile
+  keycloak:
+    profiles: []          # Remove o profile — sobe junto com o resto em dev
+    ports:
+      - "8180:8080"       # Acesso direto além do Traefik
+
+  mailhog:
+    profiles: []
+    ports:
+      - "1025:1025"       # SMTP
+      - "8025:8025"       # Web UI: http://localhost:8025

@@ -1,0 +1,13 @@
+{
+  "name": "@cadernedu/api-client",
+  "version": "0.1.0",
+  "description": "Cliente TypeScript gerado do OpenAPI — não editar manualmente",
+  "main": "src/generated/index.ts",
+  "types": "src/generated/index.ts",
+  "scripts": {
+    "generate": "openapi-generator-cli generate -i ../../docs/api/openapi.yaml -g typescript-fetch -o src/generated"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "cadernedu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plataforma de educação pública municipal — monorepo",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev:web": "pnpm --parallel --filter './apps/web_*' dev",
+    "dev:services": "pnpm --parallel --filter './services/*' dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\"",
+    "api:generate": "openapi-generator-cli generate -i docs/api/openapi.yaml -g typescript-fetch -o packages/api_client_ts/src/generated && openapi-generator-cli generate -i docs/api/openapi.yaml -g dart-dio -o packages/api_client_dart/lib/generated",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.13.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.3.0",
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": ["prettier --write", "eslint --fix"],
+    "*.{json,md,yaml,yml}": ["prettier --write"]
+  }
+}

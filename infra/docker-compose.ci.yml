@@ -1,0 +1,97 @@
+# docker-compose.ci.yml — CI/CD (GitHub Actions, etc.)
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+#
+# Diferenças em relação ao dev:
+#   - Volumes substituídos por tmpfs (zero estado entre runs, mais rápido)
+#   - Traefik desabilitado (CI acessa serviços diretamente pelas portas)
+#   - Healthchecks com intervalos curtos (evita espera desnecessária)
+#   - Keycloak/Mailhog desabilitados (testes de API não precisam)
+#   - SECRET_KEY obrigatório em .env do CI ou via secret do runner
+
+services:
+
+  traefik:
+    # Não é necessário em CI — testes acessam a API diretamente em :8000
+    profiles: [disabled-in-ci]
+
+  postgres:
+    ports:
+      - "5432:5432"
+    volumes:
+      # tmpfs: banco efêmero, sem I/O de disco — CI termina em segundos
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+    healthcheck:
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - type: tmpfs
+        target: /data
+    healthcheck:
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  minio:
+    ports:
+      - "9000:9000"
+    volumes:
+      - type: tmpfs
+        target: /data
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  api:
+    # Em CI não há volume mount — usa a imagem buildada pelo pipeline
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: ci
+      DEBUG: "false"
+      SECRET_KEY: ${SECRET_KEY:-ci-secret-only-for-testing-not-production}
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+
+  # Apps web — em CI o build é validado pelo job 'web' do GitHub Actions (pnpm build),
+  # não pelo Docker. Desabilitados para não duplicar o tempo de CI.
+  web_site:
+    profiles: [ci-full]
+
+  web_painel:
+    profiles: [ci-full]
+
+  # Keycloak e Mailhog não sobem em CI por padrão
+  keycloak:
+    profiles: [ci-full]
+
+  mailhog:
+    profiles: [ci-full]

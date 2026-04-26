@@ -1,0 +1,1013 @@
+openapi: 3.1.0
+info:
+  title: CadernEdu API
+  version: 0.2.0
+  description: |
+    API da plataforma CadernEdu — educação pública municipal.
+
+    Esta especificação é a **fonte da verdade** dos contratos.
+    Os clientes em `packages/api_client_*` são gerados automaticamente a partir deste arquivo.
+
+    ## Autenticação
+    JWT Bearer emitido pelo Keycloak (Gov.br OIDC em produção).
+    Em desenvolvimento, aceita HS256 com SECRET_KEY local.
+
+    ## Feature Flags
+    Cada endpoint de domínio (pedagogico, comunicacao, etc.) verifica se o módulo
+    correspondente está habilitado para a secretaria/escola antes de processar.
+  contact:
+    email: tech-lead@cadernedu.com.br
+
+servers:
+  - url: http://localhost:8000/v1
+    description: Local (Docker)
+  - url: https://api.staging.cadernedu.com.br/v1
+    description: Staging
+  - url: https://api.cadernedu.gov.br/v1
+    description: Produção
+
+tags:
+  - name: health
+    description: Verificação de saúde da API
+  - name: auth
+    description: Autenticação e sessão
+  - name: identity
+    description: Secretarias, escolas, turmas e usuários
+  - name: features
+    description: Feature flags por secretaria e escola
+  - name: pedagogico
+    description: Agenda online, aulas e atividades de casa
+  - name: comunicacao
+    description: Comunicados entre escola e família com upload de anexos
+
+paths:
+
+  # ── Health ──────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  environment: { type: string, example: development }
+
+  # ── Auth ────────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login local (dev) — produção usa Keycloak/Gov.br
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, senha]
+              properties:
+                email: { type: string, format: email }
+                senha: { type: string, minLength: 8 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenPair' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /me:
+    get:
+      tags: [auth]
+      summary: Dados do usuário autenticado
+      operationId: getMe
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+
+  # ── Identity — Secretarias ──────────────────────────────────────────────────
+
+  /identity/secretarias:
+    post:
+      tags: [identity]
+      summary: Cadastrar secretaria (cliente)
+      operationId: criarSecretaria
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SecretariaCreate' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Secretaria' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    get:
+      tags: [identity]
+      summary: Listar secretarias
+      operationId: listarSecretarias
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Secretaria' }
+
+  /identity/secretarias/{secretariaId}:
+    get:
+      tags: [identity]
+      summary: Detalhe de uma secretaria
+      operationId: getSecretaria
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/secretariaId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Secretaria' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Identity — Escolas ──────────────────────────────────────────────────────
+
+  /identity/secretarias/{secretariaId}/escolas:
+    post:
+      tags: [identity]
+      summary: Cadastrar escola numa secretaria
+      operationId: criarEscola
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/secretariaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EscolaCreate' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Escola' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [identity]
+      summary: Listar escolas de uma secretaria
+      operationId: listarEscolas
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/secretariaId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Escola' }
+
+  /identity/escolas/{escolaId}:
+    get:
+      tags: [identity]
+      summary: Detalhe de uma escola
+      operationId: getEscola
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/escolaId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Escola' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Identity — Turmas ───────────────────────────────────────────────────────
+
+  /identity/escolas/{escolaId}/turmas:
+    post:
+      tags: [identity]
+      summary: Criar turma numa escola
+      operationId: criarTurma
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/escolaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TurmaCreate' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Turma' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [identity]
+      summary: Listar turmas de uma escola
+      operationId: listarTurmas
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/escolaId' }
+        - name: ano_letivo
+          in: query
+          schema: { type: integer, example: 2026 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Turma' }
+
+  /identity/turmas/{turmaId}:
+    get:
+      tags: [identity]
+      summary: Detalhe de uma turma
+      operationId: getTurma
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Turma' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Identity — Usuários ─────────────────────────────────────────────────────
+
+  /identity/usuarios:
+    post:
+      tags: [identity]
+      summary: Upsert de usuário (chamado no primeiro login via Keycloak)
+      operationId: upsertUsuario
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UsuarioCreate' }
+      responses:
+        '201':
+          description: Criado ou atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+
+  /identity/usuarios/{usuarioId}:
+    get:
+      tags: [identity]
+      summary: Detalhe de um usuário
+      operationId: getUsuario
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: usuarioId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Feature Flags ───────────────────────────────────────────────────────────
+
+  /features/secretarias/{secretariaId}:
+    put:
+      tags: [features]
+      summary: Habilitar ou desabilitar uma feature (secretaria ou escola específica)
+      operationId: upsertFeatureFlag
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/secretariaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FeatureFlagUpsert' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeatureFlag' }
+    get:
+      tags: [features]
+      summary: Listar todas as flags de uma secretaria
+      operationId: listarFlags
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/secretariaId' }
+        - name: escola_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FeatureFlag' }
+
+  /features/secretarias/{secretariaId}/check/{featureKey}:
+    get:
+      tags: [features]
+      summary: Verificar se uma feature está ativa
+      operationId: checkFeature
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/secretariaId' }
+        - name: featureKey
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/FeatureKey' }
+        - name: escola_id
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FeatureStatus' }
+
+  # ── Pedagógico — Aulas ──────────────────────────────────────────────────────
+
+  /pedagogico/turmas/{turmaId}/aulas:
+    post:
+      tags: [pedagogico]
+      summary: Professor registra uma aula do dia
+      operationId: criarAula
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AulaCreate' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Aula' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [pedagogico]
+      summary: Listar aulas de uma turma
+      operationId: listarAulas
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+        - name: data_inicio
+          in: query
+          schema: { type: string, format: date }
+        - name: data_fim
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Aula' }
+
+  /pedagogico/aulas/{aulaId}:
+    patch:
+      tags: [pedagogico]
+      summary: Editar uma aula
+      operationId: atualizarAula
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/aulaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AulaUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Aula' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [pedagogico]
+      summary: Remover uma aula
+      operationId: removerAula
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/aulaId' }
+      responses:
+        '204': { description: Removida }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Pedagógico — Atividades ─────────────────────────────────────────────────
+
+  /pedagogico/turmas/{turmaId}/atividades:
+    post:
+      tags: [pedagogico]
+      summary: Professor cria uma atividade de casa
+      operationId: criarAtividade
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AtividadeCreate' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Atividade' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    get:
+      tags: [pedagogico]
+      summary: Listar atividades de casa de uma turma
+      operationId: listarAtividades
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+        - name: data_inicio
+          in: query
+          schema: { type: string, format: date }
+        - name: data_fim
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Atividade' }
+
+  /pedagogico/atividades/{atividadeId}:
+    patch:
+      tags: [pedagogico]
+      summary: Editar atividade de casa
+      operationId: atualizarAtividade
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/atividadeId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AtividadeUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Atividade' }
+    delete:
+      tags: [pedagogico]
+      summary: Remover atividade de casa
+      operationId: removerAtividade
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/atividadeId' }
+      responses:
+        '204': { description: Removida }
+
+  # ── Pedagógico — Agenda ─────────────────────────────────────────────────────
+
+  /pedagogico/turmas/{turmaId}/agenda:
+    get:
+      tags: [pedagogico]
+      summary: Agenda da turma agrupada por dia (visão aluno/família)
+      operationId: getAgenda
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+        - name: data_inicio
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: data_fim
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AgendaDia' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ── Comunicação — Mensagens ─────────────────────────────────────────────────
+
+  /comunicacao/turmas/{turmaId}/mensagens:
+    post:
+      tags: [comunicacao]
+      summary: Envia um comunicado para a turma (ou destinatário específico)
+      operationId: criarMensagem
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MensagemCreate' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mensagem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [comunicacao]
+      summary: Listar comunicados de uma turma
+      operationId: listarMensagens
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/turmaId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mensagem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /comunicacao/mensagens/{mensagemId}:
+    get:
+      tags: [comunicacao]
+      summary: Detalhe de um comunicado
+      operationId: getMensagem
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/mensagemId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mensagem' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [comunicacao]
+      summary: Remove um comunicado e seus anexos
+      operationId: removerMensagem
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/mensagemId' }
+      responses:
+        '204': { description: Removido }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ── Comunicação — Anexos ────────────────────────────────────────────────────
+
+  /comunicacao/mensagens/{mensagemId}/anexos:
+    post:
+      tags: [comunicacao]
+      summary: Upload de anexo (foto/vídeo/PDF) para um comunicado
+      operationId: uploadAnexo
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/mensagemId' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Anexo salvo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Anexo' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413':
+          description: Arquivo excede 50 MB
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: Tipo de arquivo não permitido
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /comunicacao/mensagens/{mensagemId}/anexos/{anexoId}:
+    get:
+      tags: [comunicacao]
+      summary: URL temporária (1h) para download de um anexo
+      operationId: downloadAnexo
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/mensagemId' }
+        - { $ref: '#/components/parameters/anexoId' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnexoDownload' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    secretariaId:
+      name: secretariaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    escolaId:
+      name: escolaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    turmaId:
+      name: turmaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    aulaId:
+      name: aulaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    atividadeId:
+      name: atividadeId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    mensagemId:
+      name: mensagemId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    anexoId:
+      name: anexoId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Não autorizado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Módulo não habilitado para esta secretaria/escola
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Conflito (recurso já existe)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+
+    # ── Auth ──────────────────────────────────────────────────────────────────
+
+    TokenPair:
+      type: object
+      required: [accessToken, refreshToken, expiresIn]
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer, description: Segundos }
+
+    # ── Identity ──────────────────────────────────────────────────────────────
+
+    SecretariaCreate:
+      type: object
+      required: [nome, municipio, estado, cnpj]
+      properties:
+        nome: { type: string, maxLength: 200 }
+        municipio: { type: string, maxLength: 100 }
+        estado: { type: string, pattern: '^[A-Z]{2}$' }
+        cnpj: { type: string, pattern: '^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$' }
+
+    Secretaria:
+      type: object
+      required: [id, nome, municipio, estado, cnpj, ativo, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        nome: { type: string }
+        municipio: { type: string }
+        estado: { type: string }
+        cnpj: { type: string }
+        ativo: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    EscolaCreate:
+      type: object
+      required: [nome]
+      properties:
+        nome: { type: string, maxLength: 200 }
+        codigo_inep: { type: string, pattern: '^\d{8}$', nullable: true }
+
+    Escola:
+      type: object
+      required: [id, secretaria_id, nome, ativo, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        secretaria_id: { type: string, format: uuid }
+        nome: { type: string }
+        codigo_inep: { type: string, nullable: true }
+        ativo: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    TurmaCreate:
+      type: object
+      required: [nome, serie, ano_letivo]
+      properties:
+        nome: { type: string, maxLength: 50, example: "5º Ano A" }
+        serie: { type: string, maxLength: 50, example: "5º Ano" }
+        ano_letivo: { type: integer, minimum: 2020, example: 2026 }
+
+    Turma:
+      type: object
+      required: [id, escola_id, nome, serie, ano_letivo, ativo, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        escola_id: { type: string, format: uuid }
+        nome: { type: string }
+        serie: { type: string }
+        ano_letivo: { type: integer }
+        ativo: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    UsuarioCreate:
+      type: object
+      required: [keycloak_id, nome, email, perfil]
+      properties:
+        keycloak_id: { type: string }
+        nome: { type: string }
+        email: { type: string, format: email }
+        perfil: { $ref: '#/components/schemas/PerfilUsuario' }
+        secretaria_id: { type: string, format: uuid, nullable: true }
+        escola_id: { type: string, format: uuid, nullable: true }
+
+    Usuario:
+      type: object
+      required: [id, keycloak_id, nome, email, perfil, ativo, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        keycloak_id: { type: string }
+        nome: { type: string }
+        email: { type: string, format: email }
+        perfil: { $ref: '#/components/schemas/PerfilUsuario' }
+        ativo: { type: boolean }
+        secretaria_id: { type: string, format: uuid, nullable: true }
+        escola_id: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    PerfilUsuario:
+      type: string
+      enum: [aluno, responsavel, professor, gestor_escola, secretaria]
+
+    # ── Feature Flags ─────────────────────────────────────────────────────────
+
+    FeatureKey:
+      type: string
+      enum:
+        - agenda_online
+        - comunicacao
+        - trilhas_bncc
+        - gamificacao
+        - biblioteca_digital
+        - onibus_ao_vivo
+        - dashboard_evasao
+        - tutor_ia
+        - censo_inep
+
+    FeatureFlagUpsert:
+      type: object
+      required: [feature_key, enabled]
+      properties:
+        feature_key: { $ref: '#/components/schemas/FeatureKey' }
+        enabled: { type: boolean }
+        escola_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: "Se informado, o flag aplica só a esta escola. Caso contrário, aplica a toda a secretaria."
+
+    FeatureFlag:
+      type: object
+      required: [id, feature_key, secretaria_id, enabled, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        feature_key: { $ref: '#/components/schemas/FeatureKey' }
+        secretaria_id: { type: string, format: uuid }
+        escola_id: { type: string, format: uuid, nullable: true }
+        enabled: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    FeatureStatus:
+      type: object
+      required: [feature_key, secretaria_id, enabled]
+      properties:
+        feature_key: { $ref: '#/components/schemas/FeatureKey' }
+        secretaria_id: { type: string, format: uuid }
+        escola_id: { type: string, format: uuid, nullable: true }
+        enabled: { type: boolean }
+
+    # ── Pedagógico ────────────────────────────────────────────────────────────
+
+    AulaCreate:
+      type: object
+      required: [data, disciplina, conteudo]
+      properties:
+        data: { type: string, format: date }
+        disciplina: { type: string, maxLength: 100, example: "Matemática" }
+        conteudo: { type: string, example: "Frações em partes iguais" }
+        observacoes: { type: string, nullable: true }
+
+    AulaUpdate:
+      type: object
+      properties:
+        data: { type: string, format: date }
+        disciplina: { type: string, maxLength: 100 }
+        conteudo: { type: string }
+        observacoes: { type: string, nullable: true }
+
+    Aula:
+      type: object
+      required: [id, turma_id, professor_id, data, disciplina, conteudo, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        turma_id: { type: string, format: uuid }
+        professor_id: { type: string, format: uuid }
+        data: { type: string, format: date }
+        disciplina: { type: string }
+        conteudo: { type: string }
+        observacoes: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    AtividadeCreate:
+      type: object
+      required: [disciplina, descricao, prazo]
+      properties:
+        aula_id: { type: string, format: uuid, nullable: true }
+        disciplina: { type: string, maxLength: 100 }
+        descricao: { type: string }
+        prazo: { type: string, format: date }
+        peso: { type: number, minimum: 0, maximum: 10, nullable: true }
+
+    AtividadeUpdate:
+      type: object
+      properties:
+        disciplina: { type: string, maxLength: 100 }
+        descricao: { type: string }
+        prazo: { type: string, format: date }
+        peso: { type: number, minimum: 0, maximum: 10, nullable: true }
+
+    Atividade:
+      type: object
+      required: [id, turma_id, professor_id, disciplina, descricao, prazo, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        aula_id: { type: string, format: uuid, nullable: true }
+        turma_id: { type: string, format: uuid }
+        professor_id: { type: string, format: uuid }
+        disciplina: { type: string }
+        descricao: { type: string }
+        prazo: { type: string, format: date }
+        peso: { type: number, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    AgendaDia:
+      type: object
+      required: [data, aulas, atividades]
+      properties:
+        data: { type: string, format: date }
+        aulas:
+          type: array
+          items: { $ref: '#/components/schemas/Aula' }
+        atividades:
+          type: array
+          items: { $ref: '#/components/schemas/Atividade' }
+
+    # ── Comunicação ───────────────────────────────────────────────────────────
+
+    MensagemCreate:
+      type: object
+      required: [assunto, corpo]
+      properties:
+        assunto: { type: string, maxLength: 200, example: "Reunião de pais" }
+        corpo: { type: string, example: "Reunião na próxima terça às 19h." }
+        destinatario_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: "Se informado, mensagem direta. Caso contrário, broadcast para a turma."
+
+    Mensagem:
+      type: object
+      required: [id, remetente_id, secretaria_id, assunto, corpo, created_at, anexos]
+      properties:
+        id: { type: string, format: uuid }
+        remetente_id: { type: string, format: uuid }
+        turma_id: { type: string, format: uuid, nullable: true }
+        destinatario_id: { type: string, format: uuid, nullable: true }
+        secretaria_id: { type: string, format: uuid }
+        assunto: { type: string }
+        corpo: { type: string }
+        created_at: { type: string, format: date-time }
+        anexos:
+          type: array
+          items: { $ref: '#/components/schemas/Anexo' }
+
+    Anexo:
+      type: object
+      required: [id, mensagem_id, nome_original, content_type, tamanho_bytes, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        mensagem_id: { type: string, format: uuid }
+        nome_original: { type: string }
+        content_type: { type: string, example: "image/jpeg" }
+        tamanho_bytes: { type: integer }
+        created_at: { type: string, format: date-time }
+
+    AnexoDownload:
+      type: object
+      required: [url, expires_in]
+      properties:
+        url: { type: string, format: uri }
+        expires_in: { type: integer, description: "Segundos até expirar", example: 3600 }
+
+    # ── Shared ────────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: NOT_FOUND }
+        message: { type: string }
+        details: { type: object, additionalProperties: true }

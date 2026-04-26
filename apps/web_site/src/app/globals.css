@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-wrap: pretty;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Poppins', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  p { margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  * { box-sizing: border-box; }
+}
+
+@layer utilities {
+  .text-hero {
+    font-size: clamp(44px, 5.5vw, 76px);
+  }
+
+  .text-section {
+    font-size: clamp(36px, 4vw, 56px);
+  }
+}
+
+@keyframes morph {
+  0%, 100% { border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%; }
+  50%       { border-radius: 40% 60% 45% 55% / 60% 50% 50% 40%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-20px) rotate(8deg); }
+}
+
+@keyframes float-reverse {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%       { transform: translateY(-20px) rotate(-8deg); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(27,123,63,0.18); }
+  50%       { box-shadow: 0 0 0 8px rgba(27,123,63,0.04); }
+}
+
+.animate-morph         { animation: morph 14s ease-in-out infinite; }
+.animate-float         { animation: float 8s ease-in-out infinite; }
+.animate-float-slow    { animation: float 12s ease-in-out infinite; }
+.animate-float-reverse { animation: float-reverse 10s ease-in-out infinite; }
+.animate-pulse-dot     { animation: pulse-dot 2s infinite; }
