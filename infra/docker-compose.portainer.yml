@@ -132,7 +132,7 @@ services:
     restart: unless-stopped
     networks: [backend, data]
     ports:
-      - "8000:8000"   # Nginx do host aponta para VM_IP:8000
+      - "18000:8000"  # Nginx do host aponta para VM_IP:18000
     environment:
       DATABASE_URL:       postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL:          redis://:${REDIS_PASSWORD}@redis:6379
@@ -179,7 +179,7 @@ services:
     restart: unless-stopped
     networks: [backend]
     ports:
-      - "3000:3000"   # Nginx do host aponta para VM_IP:3000
+      - "13000:3000"  # Nginx do host aponta para VM_IP:13000
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
@@ -197,7 +197,7 @@ services:
     restart: unless-stopped
     networks: [backend]
     ports:
-      - "3001:3001"   # Nginx do host aponta para VM_IP:3001
+      - "13001:3001"  # Nginx do host aponta para VM_IP:13001
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1

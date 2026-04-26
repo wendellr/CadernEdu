@@ -38,16 +38,16 @@ echo "========================================"
 echo
 
 # ── Landing (web_site) ──────────────────────────────────────────────────────
-echo ">>> [1/3] Landing: $BASE_DOMAIN → $VM_IP:3000"
-"$SCRIPT" "$BASE_DOMAIN" http "$VM_IP" 3000
+echo ">>> [1/3] Landing: $BASE_DOMAIN → $VM_IP:13000"
+"$SCRIPT" "$BASE_DOMAIN" http "$VM_IP" 13000
 
 # ── API ─────────────────────────────────────────────────────────────────────
-echo ">>> [2/3] API: api.$BASE_DOMAIN → $VM_IP:8000"
-"$SCRIPT" "api.$BASE_DOMAIN" http "$VM_IP" 8000
+echo ">>> [2/3] API: api.$BASE_DOMAIN → $VM_IP:18000"
+"$SCRIPT" "api.$BASE_DOMAIN" http "$VM_IP" 18000
 
 # ── Painel ──────────────────────────────────────────────────────────────────
-echo ">>> [3/3] Painel: painel.$BASE_DOMAIN → $VM_IP:3001"
-"$SCRIPT" "painel.$BASE_DOMAIN" http "$VM_IP" 3001
+echo ">>> [3/3] Painel: painel.$BASE_DOMAIN → $VM_IP:13001"
+"$SCRIPT" "painel.$BASE_DOMAIN" http "$VM_IP" 13001
 
 echo
 echo "========================================"
