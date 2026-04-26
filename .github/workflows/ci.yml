@@ -60,16 +60,18 @@ jobs:
       - name: Wait for postgres
         working-directory: infra
         run: |
-          for i in $(seq 1 30); do
-            STATUS=$(docker compose \
+          echo "Aguardando postgres..."
+          for i in $(seq 1 60); do
+            docker compose \
               -f docker-compose.yml \
               -f docker-compose.ci.yml \
-              ps postgres --format json | python3 -c \
-              "import sys,json; d=json.load(sys.stdin); print(d[0].get('Health',''))" 2>/dev/null || echo "")
-            [ "$STATUS" = "healthy" ] && echo "Postgres pronto!" && break
-            echo "Aguardando postgres... ($i/30)"
-            sleep 2
+              exec -T postgres pg_isready -U cadernedu -d cadernedu_dev \
+              && echo "Postgres pronto!" && exit 0
+            echo "  tentativa $i/60..."
+            sleep 1
           done
+          echo "Postgres não respondeu a tempo"
+          exit 1
 
       - name: Run migrations
         run: uv run alembic upgrade head
