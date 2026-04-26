@@ -21,6 +21,7 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+COPY package.json pnpm-workspace.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
 
 COPY packages/ ./packages/
@@ -29,11 +30,10 @@ COPY apps/web_painel ./apps/web_painel
 ARG NEXT_PUBLIC_API_URL=https://api.placeholder.com/v1
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-WORKDIR /app/apps/web_painel
-RUN pnpm build
+RUN pnpm --filter @cadernedu/web_painel build
 
-RUN test -f .next/standalone/server.js \
-    || (echo "ERRO: .next/standalone/server.js não gerado — verifique next.config.js" && exit 1)
+RUN test -f apps/web_painel/.next/standalone/server.js \
+    || (echo "ERRO: server.js não gerado. Verifique output: 'standalone' no next.config.js" && exit 1)
 
 # ── 3. Runner ─────────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
@@ -47,9 +47,9 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_painel/public            ./public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_painel/.next/standalone  ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_painel/.next/static      ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_painel/public              ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_painel/.next/standalone    ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_painel/.next/static        ./.next/static
 
 USER nextjs
 EXPOSE 3001
