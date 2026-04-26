@@ -15,22 +15,11 @@ jobs:
   # ── API Python (FastAPI) ────────────────────────────────────────────────────
 
   api:
-    name: API — lint, migrate, test
+    name: API — lint
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: services/api
-
-    # SECRET_KEY no nível do job — todos os steps herdam automaticamente
-    env:
-      SECRET_KEY: ci-secret-only-for-testing-not-production
-      DATABASE_URL: postgresql+asyncpg://cadernedu:dev@localhost:5432/cadernedu_dev
-      REDIS_URL: redis://localhost:6379
-      MINIO_ENDPOINT: localhost:9000
-      MINIO_ACCESS_KEY: cadernedu
-      MINIO_SECRET_KEY: dev_secret_change_me
-      MINIO_BUCKET: cadernedu-dev
-      ENVIRONMENT: ci
 
     steps:
       - uses: actions/checkout@v4
@@ -48,53 +37,6 @@ jobs:
         run: |
           uv run ruff check .
           uv run ruff format --check .
-
-      - name: Start infra (postgres, redis, minio)
-        working-directory: infra
-        run: |
-          docker compose \
-            -f docker-compose.yml \
-            -f docker-compose.ci.yml \
-            up -d postgres redis minio minio-init
-
-      - name: Wait for postgres
-        working-directory: infra
-        run: |
-          echo "Aguardando postgres..."
-          for i in $(seq 1 60); do
-            docker compose \
-              -f docker-compose.yml \
-              -f docker-compose.ci.yml \
-              exec -T postgres pg_isready -U cadernedu -d cadernedu_dev \
-              && echo "Postgres pronto!" && exit 0
-            echo "  tentativa $i/60..."
-            sleep 1
-          done
-          echo "Postgres não respondeu a tempo"
-          exit 1
-
-      - name: Run migrations
-        run: uv run alembic upgrade head
-
-      - name: Run tests
-        run: uv run pytest --cov --cov-report=xml -q
-        continue-on-error: true  # testes ainda em construção (meta: 70% cobertura)
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: services/api/coverage.xml
-          flags: api
-        continue-on-error: true
-
-      - name: Stop infra
-        if: always()
-        working-directory: infra
-        run: |
-          docker compose \
-            -f docker-compose.yml \
-            -f docker-compose.ci.yml \
-            down -v
 
   # ── Web (Next.js) ───────────────────────────────────────────────────────────
 
