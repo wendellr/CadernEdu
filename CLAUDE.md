@@ -255,15 +255,27 @@ pnpm api:generate  # regenera clientes a partir do openapi.yaml
 
 ## Backlog — próximos passos
 
-### P0 — Baseline (bloqueante para piloto)
-- [ ] **Comunicação** — domínio `comunicacao`: mensagens + upload de anexos (MinIO)
-- [ ] **Testes** — cobertura 70% nos domínios implementados
+### ✅ Concluído (abril/2026)
+- [x] **Painel do professor** — agenda semanal (Seg→Dom), edição de aulas, atividades de casa, comunicados
+- [x] **App mobile** — `mobile_familia`: Flutter scaffold com login, seleção de filho/turma, agenda e comunicados (iOS Simulator validado)
+- [x] **Deploy Portainer** — stack Docker com build direto do repo (api + web_site + web_painel), Nginx + TLS via script GoDaddy, rodando em staging
+- [x] **Backend mobile** — endpoints `GET /identity/responsaveis/{id}/filhos` e `GET /identity/alunos/{id}/turmas`
+- [x] **Landing page** — seções de Inclusão/TEA, Robótica, Operação Escolar e posicionamento atualizadas
+- [x] **CORS configurável** — via env var `CORS_ORIGINS`
+- [x] **Logging** — structlog com ConsoleRenderer (dev) e JSONRenderer (prod), access log suprimido
+- [x] **Favicon** — SVG com brand mark verde/cyan em web_site e web_painel
+
+### P0 — Baseline (bloqueante para saída do staging)
+- [ ] **Comunicação — anexos** — upload de mídia/PDF para o MinIO (mensagens já funcionam, falta o upload)
+- [ ] **Testes** — cobertura 70% nos domínios implementados (identity, pedagogico, features, comunicacao)
+- [ ] **Seed de produção** — script para criar secretaria/escola/professor reais (hoje só tem seed dev)
 
 ### P1 — Antes de usuários reais
-- [ ] **Auth Keycloak** — integrar OIDC no `core/security.py` (hoje: HS256 dev)
-- [ ] **Painel do professor** — `web_painel`: tela de agenda + envio de comunicados
-- [ ] **OpenAPI → clients** — gerar `api_client_ts` e `api_client_dart`
-- [ ] **App mobile** — `mobile_familia`: scaffold Flutter concluído, validar com usuários reais
+- [ ] **Auth Keycloak** — integrar OIDC no `core/security.py` e trocar `ENVIRONMENT=staging` por `production`
+- [ ] **Painel: comunicados** — tela de envio de comunicados pelo professor (backend pronto, falta UI)
+- [ ] **Painel: seleção de turma** — o professor hoje seleciona turma na home; fluxo precisa de polish
+- [ ] **App mobile: produção** — publicar na Play Store e App Store após validação do piloto
+- [ ] **OpenAPI → clients** — gerar `api_client_ts` e `api_client_dart` a partir do openapi.yaml
 
 ### P2 — Escala
 - [ ] **Gestão** — matrículas, frequência (chamada digital)
