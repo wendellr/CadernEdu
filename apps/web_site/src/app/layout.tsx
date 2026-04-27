@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: 'CadernEdu — Educação digital pública para todas as crianças',
   description:
     'Trilhas de estudo, comunicação família-escola e gestão municipal em um só lugar, dentro do orçamento da prefeitura.',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

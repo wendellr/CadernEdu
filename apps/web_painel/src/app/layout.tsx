@@ -4,6 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'CadernEdu — Painel',
   description: 'Painel administrativo para professores e secretarias.',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
