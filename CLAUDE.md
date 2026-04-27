@@ -266,7 +266,7 @@ pnpm api:generate  # regenera clientes a partir do openapi.yaml
 - [x] **Favicon** — SVG com brand mark verde/cyan em web_site e web_painel
 
 ### P0 — Baseline (bloqueante para saída do staging)
-- [ ] **Comunicação — anexos** — upload de mídia/PDF para o MinIO (mensagens já funcionam, falta o upload)
+- [x] **Comunicação** — mensagens + upload/download de anexos (foto/vídeo/PDF) via MinIO — completo no backend e frontend
 - [ ] **Testes** — cobertura 70% nos domínios implementados (identity, pedagogico, features, comunicacao)
 - [ ] **Seed de produção** — script para criar secretaria/escola/professor reais (hoje só tem seed dev)
 
