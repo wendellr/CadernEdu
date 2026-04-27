@@ -14,7 +14,11 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.detail ?? body.message ?? `Erro ${res.status}`)
+    // Pydantic retorna detail como array [{loc, msg, type}]; outras rotas retornam string
+    const detail = Array.isArray(body.detail)
+      ? body.detail.map((e: { msg: string }) => e.msg).join(', ')
+      : (body.detail ?? body.message ?? `Erro ${res.status}`)
+    throw new ApiError(res.status, detail)
   }
   if (res.status === 204) return undefined as T
   return res.json()
