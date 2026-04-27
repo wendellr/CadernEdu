@@ -9,7 +9,7 @@ FROM base AS deps
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/web_site/package.json             ./apps/web_site/
+COPY apps/web_site/package.json              ./apps/web_site/
 COPY packages/design_system_web/package.json ./packages/design_system_web/
 
 RUN pnpm install --no-frozen-lockfile --shamefully-hoist \
@@ -32,8 +32,12 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN pnpm --filter @cadernedu/web_site build
 
+# Falha o build se standalone não foi gerado
+RUN test -f apps/web_site/.next/standalone/server.js \
+    || (echo "ERRO: standalone/server.js não gerado" && exit 1)
+
 # ── 3. Runner ─────────────────────────────────────────────────────────────────
-FROM base AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -41,16 +45,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# workspace root para next start funcionar
-COPY package.json pnpm-workspace.yaml ./
-COPY --from=deps /app/node_modules ./node_modules
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 nextjs
 
-COPY packages/ ./packages/
-COPY --from=builder /app/apps/web_site/public       ./apps/web_site/public
-COPY --from=builder /app/apps/web_site/.next        ./apps/web_site/.next
-COPY --from=builder /app/apps/web_site/next.config.js ./apps/web_site/next.config.js
-COPY --from=builder /app/apps/web_site/package.json   ./apps/web_site/package.json
+# standalone contém server.js + node_modules autocontido
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/standalone ./
+# assets estáticos e public devem ficar no caminho que server.js espera
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/static  ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/public         ./public
 
-WORKDIR /app/apps/web_site
+USER nextjs
 EXPOSE 3000
-CMD ["node", ".next/standalone/server.js"]
+CMD ["node", "server.js"]
