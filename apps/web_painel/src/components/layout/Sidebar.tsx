@@ -3,7 +3,16 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
-import { BookOpen, MessageSquare, LayoutGrid, LogOut, ClipboardList } from 'lucide-react'
+import {
+  BookOpen,
+  ClipboardList,
+  Database,
+  LayoutGrid,
+  Lock,
+  LogOut,
+  MessageSquare,
+  Settings,
+} from 'lucide-react'
 import {
   clearToken,
   getUser, setEscolaAtiva, setSecretariaAtiva,
@@ -12,7 +21,18 @@ import {
 } from '@/lib/auth'
 import { getTurma, getEscola, getSecretaria, type Turma } from '@/lib/api'
 
-type NavItem = { label: string; href: string; icon: React.ReactNode }
+type NavItem = {
+  label: string
+  href: string
+  icon: React.ReactNode
+  disabled?: boolean
+  hint?: string
+}
+
+type NavGroup = {
+  title: string
+  items: NavItem[]
+}
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -71,16 +91,45 @@ export function Sidebar() {
     }).catch(() => {})
   }, [turma])
 
-  const items: NavItem[] = turmaId
-    ? [
-        { label: 'Turmas',      href: '/turmas',                                    icon: <LayoutGrid size={16} /> },
-        { label: 'Agenda',      href: `/pedagogico/turmas/${turmaId}/agenda`,        icon: <BookOpen size={16} /> },
-        { label: 'Chamada',     href: `/pedagogico/turmas/${turmaId}/chamada`,       icon: <ClipboardList size={16} /> },
-        { label: 'Comunicados', href: `/comunicacao/turmas/${turmaId}`,              icon: <MessageSquare size={16} /> },
-      ]
-    : [
-        { label: 'Turmas', href: '/turmas', icon: <LayoutGrid size={16} /> },
-      ]
+  const groups: NavGroup[] = [
+    {
+      title: 'Professor',
+      items: turmaId
+        ? [
+            { label: 'Turmas',      href: '/turmas',                                    icon: <LayoutGrid size={16} /> },
+            { label: 'Agenda',      href: `/pedagogico/turmas/${turmaId}/agenda`,        icon: <BookOpen size={16} /> },
+            { label: 'Chamada',     href: `/pedagogico/turmas/${turmaId}/chamada`,       icon: <ClipboardList size={16} /> },
+            { label: 'Comunicados', href: `/comunicacao/turmas/${turmaId}`,              icon: <MessageSquare size={16} /> },
+          ]
+        : [
+            { label: 'Turmas', href: '/turmas', icon: <LayoutGrid size={16} /> },
+          ],
+    },
+    {
+      title: 'Gestão',
+      items: [
+        {
+          label: 'Integrações',
+          href: '/config/integracoes',
+          icon: <Database size={16} />,
+          disabled: true,
+          hint: 'Planejado',
+        },
+      ],
+    },
+    {
+      title: 'Configurações',
+      items: [
+        {
+          label: 'Perfis e acesso',
+          href: '/config/perfis',
+          icon: <Settings size={16} />,
+          disabled: true,
+          hint: 'Em breve',
+        },
+      ],
+    },
+  ]
 
   function logout() {
     clearToken()
@@ -88,9 +137,9 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 shrink-0 bg-bg-alt border-r border-border flex flex-col h-screen sticky top-0">
+    <aside className="w-64 shrink-0 bg-bg-alt border-r border-border flex flex-col h-screen sticky top-0">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-5 h-14 border-b border-border">
+      <div className="flex items-center gap-2 px-5 h-16 border-b border-border">
         <BrandMark />
         <span className="font-display font-bold text-base tracking-tight">
           <span className="text-green">Cadern</span>
@@ -108,27 +157,49 @@ export function Sidebar() {
       )}
 
       {/* Navegação */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto" aria-label="Navegação principal">
-        {items.map((item) => {
-          const active = item.href === '/turmas'
-            ? pathname === '/turmas'
-            : pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={[
-                'flex items-center gap-3 px-3 py-2 rounded-btn text-sm transition-colors mb-0.5',
-                active
-                  ? 'border-l-[3px] border-cyan bg-card font-semibold text-fg pl-[9px]'
-                  : 'border-l-[3px] border-transparent text-fg-dim hover:bg-card hover:text-fg',
-              ].join(' ')}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 py-4 px-3 overflow-y-auto" aria-label="Navegação principal">
+        {groups.map((group) => (
+          <div key={group.title} className="mb-5">
+            <p className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-fg-faint">
+              {group.title}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = item.href === '/turmas'
+                  ? pathname === '/turmas'
+                  : pathname.startsWith(item.href)
+                if (item.disabled) {
+                  return (
+                    <div
+                      key={item.href}
+                      className="flex items-center gap-3 px-3 py-2 rounded-btn text-sm border-l-[3px] border-transparent text-fg-faint opacity-80"
+                      title={item.hint}
+                    >
+                      {item.icon}
+                      <span className="flex-1">{item.label}</span>
+                      <Lock size={13} aria-hidden="true" />
+                    </div>
+                  )
+                }
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      'flex items-center gap-3 px-3 py-2 rounded-btn text-sm transition-colors',
+                      active
+                        ? 'border-l-[3px] border-cyan bg-card font-semibold text-fg pl-[9px] shadow-sm'
+                        : 'border-l-[3px] border-transparent text-fg-dim hover:bg-card hover:text-fg',
+                    ].join(' ')}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Identidade + Logout */}

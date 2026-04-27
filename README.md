@@ -144,6 +144,8 @@ conflito, auditoria e aceite formal.
 - [Instruções para IA](./CLAUDE.md) — stack, convenções, módulos, comandos
 - [Arquitetura](./docs/architecture.md)
 - [Contrato da API (OpenAPI)](./docs/api/openapi.yaml)
+- [Plano do painel](./apps/web_painel/web_painel_PLAN.md)
+- [Backlog sequencial do painel](./apps/web_painel/web_painel_BACKLOG.md)
 - [ADRs](./docs/adr/)
 - [Guia de contribuição](./CONTRIBUTING.md)
 

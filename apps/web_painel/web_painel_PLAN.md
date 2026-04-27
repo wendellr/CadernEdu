@@ -4,6 +4,7 @@
 > **Stack:** Next.js 14 (App Router) + React 18 + TypeScript + Tailwind + shadcn/ui
 > **Audiência:** Professores, Diretores de Escola, Secretaria Municipal de Educação
 > **Status:** Planejamento — pré-implementação
+> **Execução:** ver backlog sequencial em [`web_painel_BACKLOG.md`](./web_painel_BACKLOG.md)
 
 ## 1. Visão geral
 
@@ -408,15 +409,15 @@ apps/web_painel/
 
 ## 13. Próximos passos
 
-Antes de começar a codar o painel:
+Antes de começar a codar grandes módulos novos:
+
 1. ✅ Aprovar este PLAN.md
-2. ⬜ Mapear sistemas usados pela prefeitura-piloto e suas fontes de verdade
-3. ⬜ Definir arquivos/API disponíveis para carga inicial de escolas, turmas, alunos e professores
-4. ⬜ Desenhar wireframes dos 10 fluxos críticos (Opção B)
-5. ⬜ Validar mapa de telas com 1 professor + 1 diretor + 1 gestor de Secretaria
-6. ⬜ Definir escola-piloto e fechar escopo final do MVP
-7. ⬜ Criar issues no board para cada tela da Fase 1 e integrações mínimas
-8. ⬜ Codar layout base + auth + importação inicial + 1 fluxo end-to-end (chamada)
+2. ⬜ Usar [`web_painel_BACKLOG.md`](./web_painel_BACKLOG.md) como checklist vivo
+3. ⬜ Começar pelo shell visual do painel: `Topbar`, `Sidebar`, `PageHeader`, cards operacionais
+4. ⬜ Em seguida, redesenhar `/turmas` como home operacional
+5. ⬜ Depois, melhorar o fluxo de chamada como primeira rotina ponta a ponta
+6. ⬜ Mapear sistemas usados pela prefeitura-piloto e suas fontes de verdade
+7. ⬜ Definir arquivos/API disponíveis para carga inicial de escolas, turmas, alunos e professores
 
 ---
 
