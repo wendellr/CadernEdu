@@ -2,6 +2,7 @@ import Header from '@/components/Header'
 import Hero from '@/components/Hero'
 import Logos from '@/components/Logos'
 import Audiences from '@/components/Audiences'
+import FamilyAppDemo from '@/components/FamilyAppDemo'
 import Features from '@/components/Features'
 import Operations from '@/components/Operations'
 import Inclusion from '@/components/Inclusion'
@@ -21,6 +22,7 @@ export default function HomePage() {
         <Hero />
         <Logos />
         <Audiences />
+        <FamilyAppDemo />
         <section className="py-0">
           <Features />
         </section>
