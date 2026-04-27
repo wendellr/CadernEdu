@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
-from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 
 class AnexoResponse(BaseModel):
@@ -31,11 +30,11 @@ class MensagemCreate(BaseModel):
 class MensagemResponse(BaseModel):
     id: uuid.UUID
     remetente_id: uuid.UUID
-    remetente_nome: str
+    remetente_nome: str = ""
     turma_id: uuid.UUID | None
     destinatario_id: uuid.UUID | None
-    destinatario_nome: str | None
-    is_broadcast: bool
+    destinatario_nome: str | None = None
+    is_broadcast: bool = True
     secretaria_id: uuid.UUID
     assunto: str
     corpo: str
@@ -43,23 +42,3 @@ class MensagemResponse(BaseModel):
     anexos: list[AnexoResponse] = []
 
     model_config = {"from_attributes": True}
-
-    @model_validator(mode="before")
-    @classmethod
-    def resolve_nomes(cls, data: Any) -> Any:
-        if not hasattr(data, "remetente_id"):
-            return data
-        return {
-            "id": data.id,
-            "remetente_id": data.remetente_id,
-            "remetente_nome": data.remetente.nome if data.remetente else "Desconhecido",
-            "turma_id": data.turma_id,
-            "destinatario_id": data.destinatario_id,
-            "destinatario_nome": data.destinatario.nome if data.destinatario else None,
-            "is_broadcast": data.destinatario_id is None,
-            "secretaria_id": data.secretaria_id,
-            "assunto": data.assunto,
-            "corpo": data.corpo,
-            "created_at": data.created_at,
-            "anexos": list(data.anexos),
-        }

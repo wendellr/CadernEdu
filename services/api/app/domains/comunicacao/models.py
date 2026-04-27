@@ -45,12 +45,6 @@ class Mensagem(AuditMixin, Base):
     anexos: Mapped[list["Anexo"]] = relationship(
         back_populates="mensagem", cascade="all, delete-orphan"
     )
-    remetente: Mapped["Usuario"] = relationship(  # type: ignore[name-defined]
-        "Usuario", foreign_keys=[remetente_id]
-    )
-    destinatario: Mapped["Usuario | None"] = relationship(  # type: ignore[name-defined]
-        "Usuario", foreign_keys=[destinatario_id]
-    )
 
 
 class Anexo(AuditMixin, Base):

@@ -53,4 +53,4 @@ COPY --from=builder /app/apps/web_site/package.json   ./apps/web_site/package.js
 
 WORKDIR /app/apps/web_site
 EXPOSE 3000
-CMD ["/app/node_modules/.bin/next", "start", "-p", "3000"]
+CMD ["node", ".next/standalone/server.js"]

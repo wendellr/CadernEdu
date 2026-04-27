@@ -52,4 +52,4 @@ COPY --from=builder /app/apps/web_painel/package.json   ./apps/web_painel/packag
 
 WORKDIR /app/apps/web_painel
 EXPOSE 3001
-CMD ["/app/node_modules/.bin/next", "start", "-p", "3001"]
+CMD ["node", ".next/standalone/server.js"]

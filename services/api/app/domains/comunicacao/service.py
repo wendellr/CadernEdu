@@ -4,11 +4,14 @@ from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import storage
+from sqlalchemy import select
+
 from app.domains.comunicacao.models import Anexo, Mensagem
 from app.domains.comunicacao.repository import AnexoRepository, MensagemRepository
-from app.domains.comunicacao.schemas import AnexoDownloadResponse, MensagemCreate
+from app.domains.comunicacao.schemas import AnexoDownloadResponse, MensagemCreate, MensagemResponse
 from app.domains.features.models import FeatureKey
 from app.domains.features.service import FeatureFlagService
+from app.domains.identity.models import Usuario
 from app.domains.identity.repository import TurmaRepository
 from app.shared.exceptions import NotFoundError
 
@@ -73,13 +76,44 @@ class MensagemService:
         self,
         turma_id: uuid.UUID,
         secretaria_id: uuid.UUID,
-    ) -> list[Mensagem]:
+    ) -> list[MensagemResponse]:
         turma = await self.turma_repo.get(turma_id)
         if not turma:
             raise NotFoundError("Turma", turma_id)
 
         await _verificar_comunicacao(self.repo.session, secretaria_id, turma.escola_id)
-        return await self.repo.list_by_turma(turma_id)
+        mensagens = await self.repo.list_by_turma(turma_id)
+        return await self._enriquecer(mensagens)
+
+    async def _enriquecer(self, mensagens: list[Mensagem]) -> list[MensagemResponse]:
+        if not mensagens:
+            return []
+
+        user_ids = {m.remetente_id for m in mensagens} | {
+            m.destinatario_id for m in mensagens if m.destinatario_id
+        }
+        result = await self.repo.session.execute(
+            select(Usuario.id, Usuario.nome).where(Usuario.id.in_(user_ids))
+        )
+        nome_map: dict[uuid.UUID, str] = {row.id: row.nome for row in result}
+
+        return [
+            MensagemResponse(
+                id=m.id,
+                remetente_id=m.remetente_id,
+                remetente_nome=nome_map.get(m.remetente_id, "Desconhecido"),
+                turma_id=m.turma_id,
+                destinatario_id=m.destinatario_id,
+                destinatario_nome=nome_map.get(m.destinatario_id) if m.destinatario_id else None,
+                is_broadcast=m.destinatario_id is None,
+                secretaria_id=m.secretaria_id,
+                assunto=m.assunto,
+                corpo=m.corpo,
+                created_at=m.created_at,
+                anexos=list(m.anexos),
+            )
+            for m in mensagens
+        ]
 
     async def remover(self, mensagem_id: uuid.UUID) -> None:
         mensagem = await self.get_or_404(mensagem_id)
