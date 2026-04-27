@@ -49,7 +49,8 @@ class MensagemService:
         await _verificar_comunicacao(self.repo.session, secretaria_id, turma.escola_id)
 
         if data.destinatario_id is not None:
-            destino: dict = {"destinatario_id": data.destinatario_id, "turma_id": None}
+            # DM: guarda turma_id para facilitar listagem no contexto da turma
+            destino: dict = {"destinatario_id": data.destinatario_id, "turma_id": turma_id}
         else:
             destino = {"turma_id": turma_id, "destinatario_id": None}
 

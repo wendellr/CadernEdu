@@ -163,11 +163,20 @@ export const listAtividades = (turmaId: string, dataInicio?: string, dataFim?: s
 
 // ── Comunicação ───────────────────────────────────────────────────────────────
 
+export type Aluno = {
+  id: string
+  nome: string
+  email: string
+}
+
 export type Mensagem = {
   id: string
   remetente_id: string
+  remetente_nome: string
   turma_id: string | null
   destinatario_id: string | null
+  destinatario_nome: string | null
+  is_broadcast: boolean
   secretaria_id: string
   assunto: string
   corpo: string
@@ -189,6 +198,9 @@ export type MensagemCreate = {
   corpo: string
   destinatario_id?: string | null
 }
+
+export const listAlunosDaTurma = (turmaId: string) =>
+  req<Aluno[]>(`/identity/turmas/${turmaId}/alunos`)
 
 export const listMensagens = (turmaId: string) =>
   req<Mensagem[]>(`/comunicacao/turmas/${turmaId}/mensagens`)

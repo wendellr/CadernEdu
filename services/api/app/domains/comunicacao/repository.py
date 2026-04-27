@@ -13,10 +13,17 @@ class MensagemRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
+    def _base_options(self):
+        return [
+            selectinload(Mensagem.anexos),
+            selectinload(Mensagem.remetente),
+            selectinload(Mensagem.destinatario),
+        ]
+
     async def get(self, mensagem_id: uuid.UUID) -> Mensagem | None:
         result = await self.session.execute(
             select(Mensagem)
-            .options(selectinload(Mensagem.anexos))
+            .options(*self._base_options())
             .where(Mensagem.id == mensagem_id)
         )
         return result.scalar_one_or_none()
@@ -24,7 +31,7 @@ class MensagemRepository:
     async def list_by_turma(self, turma_id: uuid.UUID) -> list[Mensagem]:
         result = await self.session.execute(
             select(Mensagem)
-            .options(selectinload(Mensagem.anexos))
+            .options(*self._base_options())
             .where(Mensagem.turma_id == turma_id)
             .order_by(Mensagem.created_at.desc())
         )

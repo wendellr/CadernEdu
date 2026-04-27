@@ -96,6 +96,17 @@ async def get_turma(turma_id: uuid.UUID, session: SessionDep, _: CurrentUserIdDe
     return await TurmaService(session).get_or_404(turma_id)
 
 
+@router.get(
+    "/turmas/{turma_id}/alunos",
+    response_model=list[AlunoSimplificadoResponse],
+    summary="Lista alunos com matrícula ativa na turma",
+)
+async def listar_alunos_da_turma(
+    turma_id: uuid.UUID, session: SessionDep, _: CurrentUserIdDep
+):
+    return await UsuarioRepository(session).listar_alunos_da_turma(turma_id)
+
+
 # ── Usuários ──────────────────────────────────────────────────────────────────
 
 

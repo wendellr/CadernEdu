@@ -8,12 +8,12 @@ import { ptBR } from 'date-fns/locale'
 import { Plus, Paperclip, Trash2, X, FileText, Image, Film } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  listMensagens, criarMensagem, removerMensagem, uploadAnexo,
+  listMensagens, listAlunosDaTurma, criarMensagem, removerMensagem, uploadAnexo,
   downloadAnexo, getTurma, ApiError,
-  type Mensagem, type Turma,
+  type Mensagem, type Turma, type Aluno,
 } from '@/lib/api'
 
-type MensagemForm = { assunto: string; corpo: string }
+type MensagemForm = { assunto: string; corpo: string; destinatario_id: string }
 
 export default function ComunicadosPage() {
   const { turmaId } = useParams<{ turmaId: string }>()
@@ -23,11 +23,14 @@ export default function ComunicadosPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [arquivos, setArquivos] = useState<File[]>([])
+  const [alunos, setAlunos] = useState<Aluno[]>([])
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<MensagemForm>()
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<MensagemForm>()
+  const destinatarioId = watch('destinatario_id', '')
 
   useEffect(() => {
     getTurma(turmaId).then(setTurma).catch(() => {})
+    listAlunosDaTurma(turmaId).then(setAlunos).catch(() => {})
   }, [turmaId])
 
   const carregarMensagens = useCallback(async () => {
@@ -47,7 +50,11 @@ export default function ComunicadosPage() {
   async function onEnviar(values: MensagemForm) {
     setEnviando(true)
     try {
-      const mensagem = await criarMensagem(turmaId, values)
+      const mensagem = await criarMensagem(turmaId, {
+        assunto: values.assunto,
+        corpo: values.corpo,
+        destinatario_id: values.destinatario_id || null,
+      })
 
       // Faz upload dos anexos sequencialmente
       for (const file of arquivos) {
@@ -148,8 +155,16 @@ export default function ComunicadosPage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-sm text-fg truncate">{msg.assunto}</h3>
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {msg.is_broadcast ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-cyan/10 text-cyan px-2 py-0.5 rounded-full">
+                        Para a turma toda
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide bg-purple/10 text-purple px-2 py-0.5 rounded-full">
+                        Para {msg.destinatario_nome ?? 'aluno'}
+                      </span>
+                    )}
                     {msg.anexos.length > 0 && (
                       <span className="flex items-center gap-1 text-xs text-fg-faint">
                         <Paperclip size={11} />
@@ -157,6 +172,7 @@ export default function ComunicadosPage() {
                       </span>
                     )}
                   </div>
+                  <h3 className="font-semibold text-sm text-fg mb-1">{msg.assunto}</h3>
                   <p className="text-sm text-fg-dim leading-relaxed line-clamp-2">{msg.corpo}</p>
 
                   {/* Anexos */}
@@ -176,6 +192,8 @@ export default function ComunicadosPage() {
                   )}
 
                   <p className="text-xs text-fg-faint mt-2">
+                    <span className="font-medium">{msg.remetente_nome}</span>
+                    {' · '}
                     {format(parseISO(msg.created_at), "d 'de' MMM 'às' HH:mm", { locale: ptBR })}
                   </p>
                 </div>
@@ -214,6 +232,28 @@ export default function ComunicadosPage() {
             </div>
 
             <form onSubmit={handleSubmit(onEnviar)} noValidate className="space-y-4">
+
+              {/* Destinatário */}
+              <div>
+                <label className="block text-xs font-medium text-fg mb-1">Destinatário</label>
+                <select
+                  className={inputCls(false)}
+                  {...register('destinatario_id')}
+                >
+                  <option value="">Turma toda</option>
+                  {alunos.map((a) => (
+                    <option key={a.id} value={a.id}>{a.nome}</option>
+                  ))}
+                </select>
+                {destinatarioId && (
+                  <p className="mt-1 text-xs text-purple">
+                    Mensagem privada — só a família de <strong>
+                      {alunos.find(a => a.id === destinatarioId)?.nome}
+                    </strong> vai receber.
+                  </p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-fg mb-1">Assunto</label>
                 <input

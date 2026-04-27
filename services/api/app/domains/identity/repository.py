@@ -103,6 +103,19 @@ class UsuarioRepository:
         )
         return list(result.scalars().all())
 
+    async def listar_alunos_da_turma(self, turma_id: uuid.UUID) -> list[Usuario]:
+        result = await self.session.execute(
+            select(Usuario)
+            .join(Matricula, Matricula.aluno_id == Usuario.id)
+            .where(
+                Matricula.turma_id == turma_id,
+                Matricula.ativo.is_(True),
+                Usuario.ativo.is_(True),
+            )
+            .order_by(Usuario.nome)
+        )
+        return list(result.scalars().all())
+
     async def listar_turmas_do_aluno(
         self, aluno_id: uuid.UUID, ano_letivo: int | None = None
     ) -> list[Turma]:
