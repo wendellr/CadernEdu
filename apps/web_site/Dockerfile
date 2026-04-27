@@ -30,10 +30,12 @@ COPY apps/web_site ./apps/web_site
 ARG NEXT_PUBLIC_API_URL=https://api.placeholder.com/v1
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN pnpm --filter @cadernedu/web_site build
+# Build do diretório do app — garante que __dirname em next.config.js
+# resolve outputFileTracingRoot corretamente para /app (raiz do monorepo)
+WORKDIR /app/apps/web_site
+RUN pnpm build
 
-# Falha o build se standalone não foi gerado
-RUN test -f apps/web_site/.next/standalone/server.js \
+RUN test -f .next/standalone/server.js \
     || (echo "ERRO: standalone/server.js não gerado" && exit 1)
 
 # ── 3. Runner ─────────────────────────────────────────────────────────────────
@@ -48,11 +50,9 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nextjs
 
-# standalone contém server.js + node_modules autocontido
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/standalone ./
-# assets estáticos e public devem ficar no caminho que server.js espera
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/static  ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/public         ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/.next/static      ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web_site/public             ./public
 
 USER nextjs
 EXPOSE 3000
