@@ -66,9 +66,17 @@ app = FastAPI(
     openapi_url=f"{settings.api_prefix}/openapi.json",
 )
 
+def _cors_origins() -> list[str]:
+    if not settings.is_production:
+        return ["*"]
+    if settings.cors_origins:
+        return [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    return []  # bloqueia tudo se produção sem origens configuradas
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if not settings.is_production else ["https://cadernedu.gov.br"],
+    allow_origins=_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

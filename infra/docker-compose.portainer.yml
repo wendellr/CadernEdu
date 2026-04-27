@@ -143,6 +143,7 @@ services:
       MINIO_SECURE:       "false"
       ENVIRONMENT:        production
       DEBUG:              "false"
+      CORS_ORIGINS:       https://${DOMAIN},https://painel.${DOMAIN},https://api.${DOMAIN}
     depends_on:
       postgres:
         condition: service_healthy

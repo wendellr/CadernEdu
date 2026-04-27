@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     debug: bool = False
     api_prefix: str = "/v1"
 
+    # CORS — lista separada por vírgula, ex: "https://painel.ioda.com.br,https://cadernedu.ioda.com.br"
+    cors_origins: str = ""
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
