@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
-import { BookOpen, MessageSquare, LayoutGrid, LogOut } from 'lucide-react'
+import { BookOpen, MessageSquare, LayoutGrid, LogOut, ClipboardList } from 'lucide-react'
 import {
   clearToken,
   getUser, setEscolaAtiva, setSecretariaAtiva,
@@ -73,9 +73,10 @@ export function Sidebar() {
 
   const items: NavItem[] = turmaId
     ? [
-        { label: 'Turmas', href: '/turmas', icon: <LayoutGrid size={16} /> },
-        { label: 'Agenda', href: `/pedagogico/turmas/${turmaId}/agenda`, icon: <BookOpen size={16} /> },
-        { label: 'Comunicados', href: `/comunicacao/turmas/${turmaId}`, icon: <MessageSquare size={16} /> },
+        { label: 'Turmas',      href: '/turmas',                                    icon: <LayoutGrid size={16} /> },
+        { label: 'Agenda',      href: `/pedagogico/turmas/${turmaId}/agenda`,        icon: <BookOpen size={16} /> },
+        { label: 'Chamada',     href: `/pedagogico/turmas/${turmaId}/chamada`,       icon: <ClipboardList size={16} /> },
+        { label: 'Comunicados', href: `/comunicacao/turmas/${turmaId}`,              icon: <MessageSquare size={16} /> },
       ]
     : [
         { label: 'Turmas', href: '/turmas', icon: <LayoutGrid size={16} /> },

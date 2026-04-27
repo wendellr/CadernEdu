@@ -12,8 +12,10 @@ from app.domains.pedagogico.schemas import (
     AulaCreate,
     AulaResponse,
     AulaUpdate,
+    ChamadaCreate,
+    ChamadaResponse,
 )
-from app.domains.pedagogico.service import AgendaService, AtividadeService, AulaService
+from app.domains.pedagogico.service import AgendaService, AtividadeService, AulaService, ChamadaService
 
 router = APIRouter(prefix="/pedagogico", tags=["pedagogico"])
 
@@ -141,3 +143,38 @@ async def agenda(
     return await AgendaService(session).agenda_por_periodo(
         turma_id, secretaria_id, data_inicio, data_fim
     )
+
+
+# ── Chamada ───────────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/turmas/{turma_id}/chamada",
+    response_model=ChamadaResponse,
+    summary="Lança ou atualiza a chamada do dia (upsert por aluno)",
+)
+async def lancar_chamada(
+    turma_id: uuid.UUID,
+    data: ChamadaCreate,
+    session: SessionDep,
+    professor_id: CurrentUserIdDep,
+    secretaria_id: SecretariaIdDep,
+):
+    return await ChamadaService(session).lancar(
+        turma_id, uuid.UUID(professor_id), secretaria_id, data
+    )
+
+
+@router.get(
+    "/turmas/{turma_id}/chamada",
+    response_model=ChamadaResponse,
+    summary="Retorna a chamada de um dia específico com resumo de frequência",
+)
+async def get_chamada(
+    turma_id: uuid.UUID,
+    session: SessionDep,
+    _: CurrentUserIdDep,
+    secretaria_id: SecretariaIdDep,
+    data: date = Query(..., description="Data da chamada (YYYY-MM-DD)"),
+):
+    return await ChamadaService(session).get_chamada(turma_id, secretaria_id, data)

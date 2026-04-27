@@ -4,7 +4,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.pedagogico.models import AtividadeDeCasa, Aula
+from app.domains.pedagogico.models import AtividadeDeCasa, Aula, Presenca
 
 
 class AulaRepository:
@@ -67,3 +67,49 @@ class AtividadeRepository:
     async def delete(self, atividade: AtividadeDeCasa) -> None:
         await self.session.delete(atividade)
         await self.session.flush()
+
+
+class PresencaRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def get_by_turma_data(
+        self, turma_id: uuid.UUID, data: date
+    ) -> list[Presenca]:
+        result = await self.session.execute(
+            select(Presenca)
+            .where(Presenca.turma_id == turma_id, Presenca.data == data)
+            .order_by(Presenca.aluno_id)
+        )
+        return list(result.scalars().all())
+
+    async def upsert_many(self, presencas: list[Presenca]) -> list[Presenca]:
+        """Insere ou atualiza registros de presença (upsert por turma+aluno+data)."""
+        from sqlalchemy.dialects.postgresql import insert
+
+        if not presencas:
+            return []
+
+        values = [
+            {
+                "id": p.id,
+                "turma_id": p.turma_id,
+                "aluno_id": p.aluno_id,
+                "professor_id": p.professor_id,
+                "secretaria_id": p.secretaria_id,
+                "data": p.data,
+                "status": p.status,
+                "observacoes": p.observacoes,
+            }
+            for p in presencas
+        ]
+
+        stmt = insert(Presenca).values(values)
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_presenca_turma_aluno_data",
+            set_={"status": stmt.excluded.status, "observacoes": stmt.excluded.observacoes},
+        )
+        await self.session.execute(stmt)
+        await self.session.flush()
+
+        return await self.get_by_turma_data(presencas[0].turma_id, presencas[0].data)

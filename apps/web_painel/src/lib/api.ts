@@ -114,6 +114,42 @@ export const atualizarAula = (aulaId: string, data: AulaUpdate) =>
 export const removerAula = (aulaId: string) =>
   req<void>(`/pedagogico/aulas/${aulaId}`, { method: 'DELETE' })
 
+// ── Chamada ───────────────────────────────────────────────────────────────────
+
+export type StatusPresenca = 'presente' | 'falta' | 'atestado'
+
+export type ChamadaItem = {
+  aluno_id: string
+  aluno_nome: string
+  status: StatusPresenca
+  observacoes: string | null
+  presenca_id: string | null
+}
+
+export type ChamadaResponse = {
+  data: string
+  turma_id: string
+  total: number
+  presentes: number
+  faltas: number
+  atestados: number
+  itens: ChamadaItem[]
+}
+
+export type ChamadaCreate = {
+  data: string
+  presencas: { aluno_id: string; status: StatusPresenca; observacoes?: string | null }[]
+}
+
+export const getChamada = (turmaId: string, data: string) =>
+  req<ChamadaResponse>(`/pedagogico/turmas/${turmaId}/chamada?data=${data}`)
+
+export const lancarChamada = (turmaId: string, payload: ChamadaCreate) =>
+  req<ChamadaResponse>(`/pedagogico/turmas/${turmaId}/chamada`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
 export type AtividadeCreate = {
   aula_id?: string | null
   disciplina: string

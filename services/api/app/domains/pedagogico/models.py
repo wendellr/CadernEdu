@@ -1,11 +1,18 @@
+import enum
 import uuid
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, Numeric, String, Text
+from sqlalchemy import Date, Enum, ForeignKey, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.shared.base_model import AuditMixin, Base
+
+
+class StatusPresenca(enum.StrEnum):
+    presente = "presente"
+    falta = "falta"
+    atestado = "atestado"
 
 
 class Aula(AuditMixin, Base):
@@ -59,3 +66,41 @@ class AtividadeDeCasa(AuditMixin, Base):
     peso: Mapped[float | None] = mapped_column(Numeric(4, 2), nullable=True)
 
     aula: Mapped[Aula | None] = relationship(back_populates="atividades")
+
+
+class Presenca(AuditMixin, Base):
+    """Registro de presença de um aluno numa turma em um dia específico.
+
+    Invariante: um aluno só pode ter um registro por turma por dia.
+    """
+
+    __tablename__ = "presencas"
+    __table_args__ = (
+        UniqueConstraint("turma_id", "aluno_id", "data", name="uq_presenca_turma_aluno_data"),
+    )
+
+    turma_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("turmas.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    aluno_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    professor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    secretaria_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("secretarias.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    data: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[StatusPresenca] = mapped_column(
+        Enum(StatusPresenca, name="status_presenca"), nullable=False
+    )
+    observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)

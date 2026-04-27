@@ -8,14 +8,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.features.models import FeatureKey
 from app.domains.features.service import FeatureFlagService
 from app.domains.identity.repository import TurmaRepository
-from app.domains.pedagogico.models import AtividadeDeCasa, Aula
-from app.domains.pedagogico.repository import AtividadeRepository, AulaRepository
+from sqlalchemy import select
+
+from app.domains.identity.models import Usuario
+from app.domains.pedagogico.models import AtividadeDeCasa, Aula, Presenca
+from app.domains.pedagogico.repository import AtividadeRepository, AulaRepository, PresencaRepository
 from app.domains.pedagogico.schemas import (
     AgendaDiaResponse,
     AtividadeCreate,
     AtividadeUpdate,
     AulaCreate,
     AulaUpdate,
+    ChamadaCreate,
+    ChamadaItemResponse,
+    ChamadaResponse,
 )
 from app.shared.exceptions import NotFoundError
 
@@ -190,3 +196,88 @@ class AgendaService:
             )
             for d in todas_datas
         ]
+
+
+class ChamadaService:
+    def __init__(self, session: AsyncSession) -> None:
+        self.repo = PresencaRepository(session)
+        self.turma_repo = TurmaRepository(session)
+
+    async def lancar(
+        self,
+        turma_id: uuid.UUID,
+        professor_id: uuid.UUID,
+        secretaria_id: uuid.UUID,
+        data: ChamadaCreate,
+    ) -> ChamadaResponse:
+        turma = await self.turma_repo.get(turma_id)
+        if not turma:
+            raise NotFoundError("Turma", turma_id)
+
+        await _verificar_agenda_online(self.repo.session, secretaria_id, turma.escola_id)
+
+        presencas = [
+            Presenca(
+                turma_id=turma_id,
+                aluno_id=item.aluno_id,
+                professor_id=professor_id,
+                secretaria_id=secretaria_id,
+                data=data.data,
+                status=item.status,
+                observacoes=item.observacoes,
+            )
+            for item in data.presencas
+        ]
+        salvas = await self.repo.upsert_many(presencas)
+        return await self._montar_response(turma_id, data.data, salvas)
+
+    async def get_chamada(
+        self,
+        turma_id: uuid.UUID,
+        secretaria_id: uuid.UUID,
+        data: date,
+    ) -> ChamadaResponse:
+        turma = await self.turma_repo.get(turma_id)
+        if not turma:
+            raise NotFoundError("Turma", turma_id)
+
+        await _verificar_agenda_online(self.repo.session, secretaria_id, turma.escola_id)
+        presencas = await self.repo.get_by_turma_data(turma_id, data)
+        return await self._montar_response(turma_id, data, presencas)
+
+    async def _montar_response(
+        self, turma_id: uuid.UUID, data: date, presencas: list[Presenca]
+    ) -> ChamadaResponse:
+        # Resolve nomes dos alunos em batch
+        aluno_ids = [p.aluno_id for p in presencas]
+        nomes: dict[uuid.UUID, str] = {}
+        if aluno_ids:
+            result = await self.repo.session.execute(
+                select(Usuario.id, Usuario.nome).where(Usuario.id.in_(aluno_ids))
+            )
+            nomes = {row.id: row.nome for row in result}
+
+        from app.domains.pedagogico.models import StatusPresenca
+        itens = [
+            ChamadaItemResponse(
+                aluno_id=p.aluno_id,
+                aluno_nome=nomes.get(p.aluno_id, "Desconhecido"),
+                status=p.status,
+                observacoes=p.observacoes,
+                presenca_id=p.id,
+            )
+            for p in presencas
+        ]
+        presentes = sum(1 for i in itens if i.status == StatusPresenca.presente)
+        faltas = sum(1 for i in itens if i.status == StatusPresenca.falta)
+        atestados = sum(1 for i in itens if i.status == StatusPresenca.atestado)
+
+        return ChamadaResponse(
+            data=data,
+            turma_id=turma_id,
+            total=len(itens),
+            presentes=presentes,
+            faltas=faltas,
+            atestados=atestados,
+            itens=itens,
+        )

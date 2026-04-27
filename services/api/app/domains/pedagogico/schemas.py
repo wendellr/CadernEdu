@@ -3,6 +3,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
+from app.domains.pedagogico.models import StatusPresenca
+
 # ── Aula ──────────────────────────────────────────────────────────────────────
 
 
@@ -63,6 +65,54 @@ class AtividadeResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Chamada / Presença ────────────────────────────────────────────────────────
+
+
+class PresencaItem(BaseModel):
+    """Um item da chamada: aluno + status."""
+    aluno_id: uuid.UUID
+    status: StatusPresenca
+    observacoes: str | None = None
+
+
+class ChamadaCreate(BaseModel):
+    """Payload para lançar a chamada do dia (todos os alunos de uma vez)."""
+    data: date
+    presencas: list[PresencaItem] = Field(min_length=1)
+
+
+class PresencaResponse(BaseModel):
+    id: uuid.UUID
+    turma_id: uuid.UUID
+    aluno_id: uuid.UUID
+    professor_id: uuid.UUID
+    data: date
+    status: StatusPresenca
+    observacoes: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ChamadaResponse(BaseModel):
+    """Chamada do dia: lista de presenças enriquecida com nome do aluno."""
+    data: date
+    turma_id: uuid.UUID
+    total: int
+    presentes: int
+    faltas: int
+    atestados: int
+    itens: list["ChamadaItemResponse"]
+
+
+class ChamadaItemResponse(BaseModel):
+    aluno_id: uuid.UUID
+    aluno_nome: str
+    status: StatusPresenca
+    observacoes: str | None
+    presenca_id: uuid.UUID | None  # None = não lançado ainda
 
 
 # ── Agenda (visão aluno/família) ──────────────────────────────────────────────
