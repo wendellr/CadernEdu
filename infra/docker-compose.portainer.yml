@@ -141,7 +141,7 @@ services:
       MINIO_SECRET_KEY:   ${MINIO_SECRET_KEY}
       MINIO_BUCKET:       ${MINIO_BUCKET}
       MINIO_SECURE:       "false"
-      ENVIRONMENT:        production
+      ENVIRONMENT:        ${ENVIRONMENT:-staging}
       DEBUG:              "false"
       CORS_ORIGINS:       https://${DOMAIN},https://painel.${DOMAIN},https://api.${DOMAIN}
     depends_on:
@@ -170,12 +170,16 @@ services:
       context: ..
       dockerfile: apps/web_site/Dockerfile
       args:
+        # NEXT_PUBLIC_* é embutido no JS e executado no browser — deve ser URL externa
         NEXT_PUBLIC_API_URL: https://api.${DOMAIN}/v1
     container_name: cadernedu-web_site
     restart: unless-stopped
     networks: [backend]
     ports:
       - "13000:3000"
+    environment:
+      # API_URL usa rede interna Docker para chamadas server-side (SSR/API routes)
+      API_URL: http://api:8000/v1
     depends_on:
       api:
         condition: service_healthy
@@ -195,6 +199,8 @@ services:
     networks: [backend]
     ports:
       - "13001:3001"
+    environment:
+      API_URL: http://api:8000/v1
     depends_on:
       api:
         condition: service_healthy
