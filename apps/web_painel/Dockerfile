@@ -50,6 +50,6 @@ COPY --from=builder /app/apps/web_painel/.next          ./apps/web_painel/.next
 COPY --from=builder /app/apps/web_painel/package.json   ./apps/web_painel/package.json
 COPY --from=builder /app/apps/web_painel/next.config.js ./apps/web_painel/next.config.js
 
-WORKDIR /app/apps/web_painel
+WORKDIR /app
 EXPOSE 3001
-CMD ["node_modules/.bin/next", "start", "-p", "3001"]
+CMD ["node_modules/.bin/next", "start", "apps/web_painel", "-p", "3001"]

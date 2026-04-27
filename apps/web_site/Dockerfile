@@ -50,6 +50,6 @@ COPY --from=builder /app/apps/web_site/.next         ./apps/web_site/.next
 COPY --from=builder /app/apps/web_site/package.json  ./apps/web_site/package.json
 COPY --from=builder /app/apps/web_site/next.config.js ./apps/web_site/next.config.js
 
-WORKDIR /app/apps/web_site
+WORKDIR /app
 EXPOSE 3000
-CMD ["node_modules/.bin/next", "start", "-p", "3000"]
+CMD ["node_modules/.bin/next", "start", "apps/web_site", "-p", "3000"]
