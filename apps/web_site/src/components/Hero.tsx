@@ -27,12 +27,12 @@ export default function Hero() {
           </h1>
 
           <p className="text-[19px] text-fg-dim max-w-[540px] leading-[1.55]">
-            Trilhas de estudo, comunicação família-escola e gestão municipal —
-            em um só lugar, dentro do orçamento da prefeitura.
+            Apps, painel e integrações para aproximar escola, família e gestão
+            municipal sem descartar os sistemas que a prefeitura já usa.
           </p>
 
           <p className="mt-5 text-[15px] text-fg-faint max-w-[480px] leading-[1.55] border-l-[3px] border-green pl-4 italic">
-            CadernEdu não é uma agenda digital. É a plataforma que conecta aprendizagem, família e gestão pública em um só fluxo.
+            Começamos integrando dados existentes, validando uma escola-piloto e só depois avançamos para automações mais profundas.
           </p>
 
           <div className="flex gap-3.5 mt-9 flex-wrap">
@@ -51,9 +51,9 @@ export default function Hero() {
           </div>
 
           <div className="flex gap-8 mt-12 flex-wrap">
-            <TrustItem color="text-green" num="+120" label={<>escolas-piloto<br />conectadas</>} />
-            <TrustItem color="text-cyan" num="+42 mil" label={<>alunos ativos<br />em 6 estados</>} />
-            <TrustItem color="text-coral" num="4,8/5" label={<>nota média<br />dos professores</>} />
+            <TrustItem color="text-green" num="Integra" label={<>com sistemas<br />existentes</>} />
+            <TrustItem color="text-cyan" num="Piloto" label={<>com carga inicial<br />assistida</>} />
+            <TrustItem color="text-coral" num="Audita" label={<>dados sensíveis<br />desde o início</>} />
           </div>
         </div>
 
@@ -92,11 +92,11 @@ export default function Hero() {
               style={{ background: '#FBBF24' }}
               aria-hidden="true"
             >
-              7
+              ✓
             </span>
             <div>
-              <div className="font-display font-semibold text-[13px]">Streak de 7 dias!</div>
-              <div className="text-fg-faint text-[11px]">Lara estudou hoje</div>
+              <div className="font-display font-semibold text-[13px]">Agenda do dia</div>
+              <div className="text-fg-faint text-[11px]">Aula e tarefa registradas</div>
             </div>
           </div>
 
@@ -112,8 +112,8 @@ export default function Hero() {
               ✓
             </span>
             <div>
-              <div className="font-display font-semibold text-[13px]">Boletim atualizado</div>
-              <div className="text-fg-faint text-[11px]">Português · 8,5</div>
+              <div className="font-display font-semibold text-[13px]">Dados sincronizados</div>
+              <div className="text-fg-faint text-[11px]">Turma · frequência · recados</div>
             </div>
           </div>
 

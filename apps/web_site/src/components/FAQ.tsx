@@ -1,28 +1,28 @@
 const faqs = [
   {
     q: 'Quanto custa para o município?',
-    a: 'O modelo é por aluno ativo/mês com escala municipal. Há linha de financiamento via FUNDEB e parcerias com governos estaduais. Falamos com sua secretaria para um orçamento sob medida.',
+    a: 'O modelo comercial depende do escopo do piloto, quantidade de escolas, módulos contratados e integrações necessárias. A proposta deve nascer depois do diagnóstico técnico e pedagógico da rede.',
     open: true,
   },
   {
     q: 'Funciona em escolas com internet ruim?',
-    a: 'Sim. O app foi desenhado offline-first: o aluno baixa a trilha do dia e sincroniza quando voltar à área coberta. A versão mobile é nativa (iOS e Android), publicada nas lojas oficiais.',
+    a: 'Essa é uma premissa do produto. Os apps são nativos e a arquitetura prevê uso offline para rotinas selecionadas, com sincronização quando houver conexão. O escopo offline exato é definido por módulo.',
   },
   {
     q: 'Como vocês tratam a LGPD de menores?',
-    a: 'A conta é gerenciada pela escola, com consentimento parental documentado. Dados sensíveis ficam em servidores no Brasil, com criptografia em trânsito e em repouso, auditoria completa e DPO dedicado.',
+    a: 'O desenho considera conta de aluno gerenciada pela escola, consentimento parental, auditoria de acesso e minimização de dados. Em implantação real, os controles e bases legais precisam ser validados com a prefeitura.',
   },
   {
     q: 'Integra com o sistema atual da prefeitura?',
-    a: 'Sim. Temos integrações prontas com SED, SIGAA e exportação direta para o Censo Escolar do INEP. Outras integrações são desenvolvidas no piloto sem custo adicional.',
+    a: 'Essa é a estratégia central. Primeiro mapeamos quais sistemas são fonte de verdade e começamos por importação CSV/XLSX ou API disponível. Conectores específicos entram conforme viabilidade técnica e contrato.',
   },
   {
     q: 'Quanto tempo leva pra implantar?',
-    a: 'O piloto em 10 escolas roda em 60 dias. A escala para a rede toda acontece nos 3 meses seguintes. Treinamos professores e equipe pedagógica em formato híbrido.',
+    a: 'Depende da qualidade dos dados, do acesso aos sistemas existentes e do escopo escolhido. O caminho recomendado é começar com uma escola-piloto, carga inicial assistida e um fluxo ponta a ponta validado.',
   },
   {
     q: 'Quem mantém o conteúdo pedagógico?',
-    a: 'As trilhas seguem a BNCC e podem ser remixadas por professores da rede. Há também marketplace com editoras e ONGs parceiras já curado pela nossa equipe.',
+    a: 'A rede pode manter seus próprios materiais, planos e trilhas. Conteúdos BNCC, robótica e tutor IA são módulos que podem ser adicionados progressivamente, com curadoria e governança pedagógica.',
   },
 ]
 

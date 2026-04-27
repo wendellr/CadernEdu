@@ -8,6 +8,11 @@
 CadernEdu conecta toda a comunidade escolar de uma rede municipal em um único sistema.
 Cada secretaria (cliente) ativa os módulos que precisa; cada escola pode ter configuração própria.
 
+O produto segue uma estratégia **integration-first**: no piloto, ele integra
+com sistemas oficiais já usados pela prefeitura antes de propor substituição.
+Assim, o CadernEdu funciona como camada moderna de experiência, operação e
+inteligência sem obrigar a secretaria a jogar fora processos existentes.
+
 **Quatro experiências distintas, mesma base de dados:**
 
 | Quem | Canal | O que faz |
@@ -36,13 +41,11 @@ docker compose up --build -d
 
 Acesse:
 - **API / Swagger** → http://localhost:8000/docs
-- **Landing** → http://cadernedu.localhost
-- **Painel** → http://painel.localhost
+- **Landing** → http://localhost:3000
+- **Painel** → http://localhost:3001
 - **MinIO Console** → http://localhost:9001 _(user: cadernedu / senha: dev_secret_change_me)_
 - **Mailhog** → http://localhost:8025
 - **Keycloak** → http://localhost:8180 _(user: admin / senha: admin)_
-
-> Os hostnames `*.localhost` funcionam nativamente no Mac sem editar `/etc/hosts`.
 
 ## Módulos
 
@@ -78,7 +81,8 @@ As funcionalidades são habilitadas por secretaria, com override por escola.
 | Cache / Filas | Redis 7, ARQ |
 | Storage | MinIO (dev) / S3 (prod) |
 | Auth | Keycloak + Gov.br OIDC |
-| Infra | Docker Compose (dev) · Kubernetes EKS (prod) |
+| Integrações | CSV/XLSX/SFTP/API via adaptadores para sistemas legados |
+| Infra | Docker Compose (dev/Portainer) · Nginx externo no servidor |
 | CI/CD | GitHub Actions (web/backend) · Codemagic (Flutter) |
 
 ## Estrutura do monorepo
@@ -104,12 +108,13 @@ services/
       comunicacao/    Mensagens + anexos
       gestao/         Matrículas, frequência
       analytics/      Indicadores, evasão
+      integrations/   Conectores, importações, reconciliação
 
 infra/
   docker-compose.yml          Stack base
   docker-compose.override.yml Dev (hot-reload)
   docker-compose.ci.yml       CI/CD (tmpfs)
-  traefik/                    Reverse proxy
+  docker-compose.portainer.yml Deploy remoto via Portainer
 
 docs/
   api/openapi.yaml    Contrato da API ✅
@@ -124,10 +129,15 @@ completamente isolados. Cada domínio pode ser extraído em microsserviço indep
 quando a carga exigir, sem reescrita.
 
 ```
-Internet → Traefik → API → [identity] [features] [pedagogico] [comunicacao] [gestao] [analytics]
-                        ↓
-               PostgreSQL 16   Redis 7   MinIO
+Internet → Nginx externo → API → [identity] [features] [pedagogico] [comunicacao] [gestao] [analytics]
+                              ↓
+                     PostgreSQL 16   Redis 7   MinIO
 ```
+
+Integrações com sistemas legados passam por adaptadores e importações
+controladas para o modelo canônico do CadernEdu. CSV/XLSX validado é aceitável
+no piloto; escrita bidirecional em sistemas oficiais só entra com regra de
+conflito, auditoria e aceite formal.
 
 ## Documentação
 

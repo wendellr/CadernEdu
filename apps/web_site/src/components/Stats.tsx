@@ -1,8 +1,8 @@
 const stats = [
-  { num: '47,3M', label: 'alunos na rede pública básica no Brasil', colorClass: 'text-yellow' },
-  { num: '38%',   label: 'das escolas municipais sem plataforma própria', colorClass: 'text-cyan' },
-  { num: '3h+',   label: 'por semana de controles manuais por professor', colorClass: 'text-coral' },
-  { num: '100%',  label: 'acessível — Libras, leitor de tela, alto contraste', colorClass: 'text-purple' },
+  { num: 'Integra', label: 'com sistemas oficiais antes de propor substituição', colorClass: 'text-yellow' },
+  { num: 'Importa', label: 'dados por CSV/XLSX ou API, com validação e histórico', colorClass: 'text-cyan' },
+  { num: 'Reconcilia', label: 'duplicidades, vínculos quebrados e erros de origem', colorClass: 'text-coral' },
+  { num: 'Audita', label: 'acessos e alterações em dados sensíveis de menores', colorClass: 'text-purple' },
 ]
 
 export default function Stats() {
@@ -12,7 +12,7 @@ export default function Stats() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {stats.map((s) => (
             <div key={s.num}>
-              <div className={`font-display font-bold tracking-[-0.03em] leading-none text-[clamp(48px,5vw,72px)] ${s.colorClass}`}>
+              <div className={`font-display font-bold tracking-[-0.03em] leading-none text-[clamp(34px,4vw,52px)] ${s.colorClass}`}>
                 {s.num}
               </div>
               <p className="mt-3.5 text-[16px] text-white/65 max-w-[220px]">{s.label}</p>

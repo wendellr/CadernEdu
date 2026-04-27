@@ -16,6 +16,12 @@ estratégico** da educação municipal.
 adoção institucional. Se o painel for ruim, o sistema não emplaca —
 mesmo que aluno e família amem o app.
 
+O painel também precisa respeitar o cenário real das prefeituras: já existem
+sistemas de matrícula, diário, frequência, notas, RH, merenda, transporte e
+prestação de contas. O CadernEdu deve entrar como **camada de experiência,
+operação e inteligência integrada**, não como substituição obrigatória de tudo
+no primeiro contrato.
+
 ## 2. Perfis de usuário e permissões
 
 | Perfil                          | Escopo            | Acesso principal                              |
@@ -94,7 +100,10 @@ mesmo que aluno e família amem o app.
 ### ⚙️ Módulo Configurações
 - `/config/usuarios` — gestão de usuários e perfis
 - `/config/perfis` — definição de papéis e permissões
-- `/config/integracoes` — Gov.br, INEP, SIGAA, sistemas legados
+- `/config/integracoes` — Gov.br, INEP, SIGAA, sistemas legados, importações CSV/XLSX
+- `/config/integracoes/:id` — detalhe do conector, status, credenciais e histórico
+- `/config/integracoes/importacoes` — execuções de importação/exportação e erros por linha
+- `/config/integracoes/mapeamentos` — mapeamento de campos e IDs externos para modelo canônico
 - `/config/branding` — logo e cores do município
 - `/config/auditoria` — log de auditoria
 - `/config/lgpd` — consentimentos, solicitações de titulares
@@ -202,6 +211,9 @@ adiciona:
 - Componentes base (DataTable, FilterBar, forms)
 - Tela de login + recuperação de senha
 - Tela de seleção de perfil/escola (multi-vínculo)
+- Modelo canônico de dados educacionais para integrações
+- Importação inicial CSV/XLSX de escolas, turmas, alunos, responsáveis, professores e matrículas
+- Tela mínima de status de importação com erros por linha
 
 ### 🟢 Fase 1 — MVP escola-piloto (3-4 meses)
 **Foco: professor e diretor da escola-piloto**
@@ -213,9 +225,11 @@ adiciona:
 - Gestão básica de turmas e alunos
 - Relatórios básicos da escola
 - Comunicados em massa para a escola
+- Reconciliação manual de dados importados da escola-piloto
+- Política clara por entidade: CadernEdu lê, escreve ou apenas espelha o sistema oficial
 
 **Não entra na Fase 1:** indicadores avançados, merenda, transporte,
-correção com IA, integrações externas.
+correção com IA, integrações bidirecionais complexas.
 
 ### 🟡 Fase 2 — Escala municipal (3 meses)
 - Dashboard de Secretaria (rede toda)
@@ -226,6 +240,8 @@ correção com IA, integrações externas.
 - Censo Escolar — export INEP
 - Auditoria visível
 - Painel de ouvidoria
+- Sincronização recorrente com sistemas legados priorizados
+- Conectores específicos por fornecedor usado pela prefeitura-piloto
 
 ### 🟣 Fase 3 — Operacional + IA (3-4 meses)
 - Merenda (cardápio + estoque + compras)
@@ -257,8 +273,20 @@ fluxos deve ter wireframe aprovado:
 6. **Comunicado em massa segmentado** (preview por canal antes de enviar)
 7. **Lançamento de notas em lote** (tabela editável tipo planilha)
 8. **Onboarding de nova escola** (wizard multi-passo)
+9. **Importação inicial da escola-piloto** (upload, validação, erros, confirmação)
+10. **Reconciliação de dados legados** (duplicados, vínculos quebrados, IDs externos)
 
 ## 9. Considerações técnicas
+
+### Integrações
+- CadernEdu usa um modelo canônico interno e adaptadores por sistema externo
+- O MVP deve suportar importação CSV/XLSX antes de conectores sob medida
+- Toda entidade importada deve guardar `external_system`, `external_id` e data da última sincronização
+- Importações devem ser idempotentes: repetir o mesmo arquivo não pode duplicar registros
+- Toda execução de importação/exportação deve gerar log com total lido, criado, atualizado, ignorado e rejeitado
+- Erros precisam ser acionáveis para usuário não técnico: linha, campo, motivo e sugestão
+- Escrita em sistema legado só entra depois de regra de conflito, auditoria e aceite formal da prefeitura
+- Conectores específicos devem ficar isolados do domínio principal por camada de adapter
 
 ### Performance
 - SSR para landing pages do painel; CSR para áreas de trabalho intensivo
@@ -327,6 +355,9 @@ fluxos deve ter wireframe aprovado:
 | Formadores de opinião contra "tela"      | Tablet first, sem dependência só de desktop     |
 | Vazamento de dados de menores            | RLS no Postgres, audit log, mascaramento        |
 | Diretor sem perfil técnico               | Wizards passo-a-passo, copy explicativa         |
+| Produto virar "mais uma tela para preencher" | Integração com sistemas existentes antes de exigir redigitação |
+| Dados legados inconsistentes              | Importação validada, reconciliação manual e relatórios de erro |
+| Fornecedor legado sem API                 | CSV/XLSX/SFTP como ponte inicial, conector específico depois |
 
 ## 12. Estrutura de pastas do painel
 
@@ -347,6 +378,7 @@ apps/web_painel/
 │   │   │   ├── operacional/
 │   │   │   ├── indicadores/
 │   │   │   ├── comunicacao/
+│   │   │   ├── integracoes/
 │   │   │   └── config/
 │   │   └── api/
 │   ├── components/
@@ -359,6 +391,7 @@ apps/web_painel/
 │   │   ├── chamada/
 │   │   ├── atividades/
 │   │   ├── boletim/
+│   │   ├── integracoes/
 │   │   └── ...
 │   ├── lib/
 │   │   ├── api.ts                 # Wrapper do api_client_ts
@@ -377,11 +410,13 @@ apps/web_painel/
 
 Antes de começar a codar o painel:
 1. ✅ Aprovar este PLAN.md
-2. ⬜ Desenhar wireframes dos 8 fluxos críticos (Opção B)
-3. ⬜ Validar mapa de telas com 1 professor + 1 diretor + 1 gestor de Secretaria
-4. ⬜ Definir escola-piloto e fechar escopo final do MVP
-5. ⬜ Criar issues no board para cada tela da Fase 1 (estimativa de pontos)
-6. ⬜ Codar layout base + auth + 1 fluxo end-to-end (chamada) como prova de conceito
+2. ⬜ Mapear sistemas usados pela prefeitura-piloto e suas fontes de verdade
+3. ⬜ Definir arquivos/API disponíveis para carga inicial de escolas, turmas, alunos e professores
+4. ⬜ Desenhar wireframes dos 10 fluxos críticos (Opção B)
+5. ⬜ Validar mapa de telas com 1 professor + 1 diretor + 1 gestor de Secretaria
+6. ⬜ Definir escola-piloto e fechar escopo final do MVP
+7. ⬜ Criar issues no board para cada tela da Fase 1 e integrações mínimas
+8. ⬜ Codar layout base + auth + importação inicial + 1 fluxo end-to-end (chamada)
 
 ---
 

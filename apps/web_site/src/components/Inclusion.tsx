@@ -99,7 +99,7 @@ export default function Inclusion() {
           <span className="px-2.5 py-1 rounded-full bg-green-soft text-green font-semibold text-[11px] uppercase tracking-wide">
             WCAG 2.1 AA
           </span>
-          <span>Toda a plataforma segue as diretrizes de acessibilidade digital — navegação por teclado, leitores de tela e contraste mínimo garantidos.</span>
+          <span>A plataforma é desenhada para seguir acessibilidade digital — navegação por teclado, leitores de tela e contraste mínimo desde o projeto.</span>
         </div>
       </div>
     </section>

@@ -6,7 +6,7 @@ const highlights = [
 ]
 
 const projectExamples = [
-  { emoji: '🌡️', name: 'Sensor de temperatura', desc: 'Monitora a sala de aula em tempo real' },
+  { emoji: '🌡️', name: 'Sensor de temperatura', desc: 'Coleta dados simples da sala de aula' },
   { emoji: '💡', name: 'Automação de iluminação', desc: 'Ativa/desativa com sensor de presença' },
   { emoji: '☀️', name: 'Energia renovável', desc: 'Mini painel solar com medição de geração' },
   { emoji: '📡', name: 'IoT na escola', desc: 'Conecta sensores à internet e visualiza dados' },
@@ -112,14 +112,14 @@ function MockScreenRobotics() {
           <span>9:41</span><span>● ● ●</span>
         </div>
         <div className="font-display font-bold text-[18px] mt-1">Trilha Robótica 🤖</div>
-        <div className="text-[11px] text-fg-faint">Marco · Nível 3 de 5</div>
+        <div className="text-[11px] text-fg-faint">Marco · Projeto guiado</div>
         <div className="rounded-[14px] p-3 text-white" style={{ background: 'linear-gradient(135deg, #0891B2 0%, #1B7B3F 100%)' }}>
           <div className="text-[9px] uppercase tracking-[0.1em] opacity-85">Missão atual</div>
           <div className="font-display font-bold text-[13px] mt-1">Sensor de temperatura 🌡️</div>
           <div className="h-1.5 rounded-full bg-white/25 mt-2 overflow-hidden">
             <div className="w-[60%] h-full rounded-full bg-yellow" />
           </div>
-          <div className="text-[9px] opacity-75 mt-1">60% concluído</div>
+          <div className="text-[9px] opacity-75 mt-1">Em andamento</div>
         </div>
         <div className="flex flex-col gap-1.5 mt-1">
           {[
@@ -135,7 +135,7 @@ function MockScreenRobotics() {
         </div>
         <div className="mt-auto flex items-center gap-1.5 p-2 bg-yellow/10 rounded-[8px]">
           <span className="text-[14px]">🏆</span>
-          <span className="text-[10px] font-semibold text-fg">+120 XP ao concluir</span>
+          <span className="text-[10px] font-semibold text-fg">Registro para o professor</span>
         </div>
       </div>
     </div>

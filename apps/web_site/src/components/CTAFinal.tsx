@@ -18,7 +18,8 @@ export default function CTAFinal() {
           Vamos começar<br />o piloto juntos?
         </h2>
         <p className="mt-6 mb-9 text-white/90 text-[19px]">
-          Selecionamos 10 escolas para os próximos 60 dias. Sem custo de implantação no piloto.
+          O primeiro passo é entender os sistemas existentes, escolher uma escola-piloto
+          e validar um fluxo real sem criar mais retrabalho para a rede.
         </p>
         <div className="flex gap-3.5 justify-center flex-wrap">
           <a

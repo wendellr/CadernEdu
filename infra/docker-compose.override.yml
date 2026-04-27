@@ -6,11 +6,6 @@
 
 services:
 
-  traefik:
-    ports:
-      - "80:80"           # HTTP — rotas via hostname (*.localhost)
-      - "8080:8080"       # Dashboard: http://localhost:8080/dashboard/
-
   # Expõe datastores para acesso direto por ferramentas (DBeaver, RedisInsight, etc.)
   postgres:
     ports:
@@ -84,7 +79,7 @@ services:
   keycloak:
     profiles: []          # Remove o profile — sobe junto com o resto em dev
     ports:
-      - "8180:8080"       # Acesso direto além do Traefik
+      - "8180:8080"
 
   mailhog:
     profiles: []

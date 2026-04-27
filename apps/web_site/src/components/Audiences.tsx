@@ -12,28 +12,28 @@ const cards: AudCard[] = [
     dotColor: '#1B7B3F',
     title: 'Aluno',
     role: 'Aprender',
-    items: ['Trilhas BNCC por série', 'Tarefas e entregas', 'Biblioteca digital', 'Comunidade da turma', 'Conquistas e recompensas'],
+    items: ['Agenda da turma', 'Atividades de casa', 'Trilhas por módulo', 'Rotina visual', 'Progresso acompanhado'],
   },
   {
     color: 'bg-coral',
     dotColor: '#FB7185',
     title: 'Professor',
     role: 'Ensinar',
-    items: ['Planejamento de aula', 'Chamada e diário', 'Correção com feedback', 'Mural da turma', 'Relatórios pedagógicos'],
+    items: ['Chamada digital', 'Registro de aulas', 'Atividades de casa', 'Mural da turma', 'Turmas importadas'],
   },
   {
     color: 'bg-purple',
     dotColor: '#A78BFA',
     title: 'Família',
     role: 'Acompanhar',
-    items: ['Boletim em tempo real', 'Mural de comunicados', 'Autorizações digitais', 'Merenda e cardápio', 'Ônibus escolar ao vivo'],
+    items: ['Comunicados oficiais', 'Agenda semanal', 'Atividades do aluno', 'Anexos da escola', 'Módulos por contrato'],
   },
   {
     color: 'bg-cyan',
     dotColor: '#0891B2',
     title: 'Secretaria',
     role: 'Gerir',
-    items: ['Indicadores por escola', 'Alertas de evasão', 'Gestão de matrículas', 'Comunicados em massa', 'Rotas e transporte'],
+    items: ['Carga inicial de dados', 'Integrações legadas', 'Indicadores por escola', 'Feature flags', 'Auditoria e LGPD'],
   },
 ]
 
@@ -45,9 +45,9 @@ export default function Audiences() {
           <span className="inline-block font-display font-bold text-[13px] tracking-[0.16em] uppercase text-cyan mb-4">
             Para quem é
           </span>
-          <h2 className="text-section">Um app para toda a comunidade escolar.</h2>
+          <h2 className="text-section">Uma camada digital para toda a comunidade escolar.</h2>
           <p className="text-[19px] text-fg-dim mt-5">
-            Quatro experiências feitas sob medida — do aluno à secretaria. Mesma base, mesmos dados, sem planilhas paralelas.
+            Quatro experiências feitas sob medida, conectadas por dados canônicos e integrações com os sistemas oficiais da rede.
           </p>
         </div>
 

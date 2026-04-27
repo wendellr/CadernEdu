@@ -12,6 +12,7 @@ famílias, professores e secretarias em um só sistema, alinhado à BNCC.
 - Web em Next.js para painel administrativo e site institucional
 - Backend em **FastAPI (Python)** — modular monolith pronto para escalar em microsserviços
 - Funcionalidades modulares habilitadas por **Secretaria** (cliente) com granularidade por **Escola**
+- Estratégia **integration-first**: integrar com sistemas oficiais existentes da prefeitura antes de propor substituição completa
 
 ## Stack oficial
 
@@ -28,6 +29,7 @@ famílias, professores e secretarias em um só sistema, alinhado à BNCC.
 | Observ.      | Grafana, Loki, Sentry                                             |
 | Infra        | Kubernetes (EKS), Terraform                                       |
 | CI/CD        | GitHub Actions (web/backend), Codemagic (Flutter)                 |
+| Integrações  | CSV/XLSX/SFTP/API via adaptadores para modelo canônico interno     |
 
 ## Módulos da plataforma
 
@@ -57,6 +59,48 @@ Hierarquia de resolução: flag de escola > flag de secretaria > desabilitado po
 | Inclusão TEA | `inclusao_tea` | Rotina visual, tarefas step-by-step, modo sensorial reduzido e painel de acompanhamento para alunos com TEA |
 | Robótica educacional | `robotica` | Trilhas de robótica e sistemas embarcados (ESP32, sensores, IoT) entregues por parceiro especializado e integradas à jornada do aluno |
 
+## Estratégia de integrações
+
+CadernEdu não deve assumir que a prefeitura vai abandonar imediatamente os
+sistemas oficiais já usados para matrícula, diário, frequência, notas,
+transporte, merenda, RH, ouvidoria ou prestação de contas. A plataforma deve
+funcionar como camada moderna de experiência, operação, integração e
+inteligência.
+
+### Modelo canônico
+
+Os domínios principais usam entidades canônicas próprias:
+
+- Secretaria
+- Escola
+- Usuario
+- Aluno
+- Responsavel
+- Professor
+- Turma
+- Matricula
+- Aula
+- Frequencia
+- Nota
+- Comunicado
+
+Sistemas externos devem ser conectados por adaptadores. Códigos, nomes de
+tabelas e peculiaridades de fornecedores não devem vazar para services,
+schemas e routers dos domínios principais.
+
+### Regras para qualquer integração
+
+- Definir a fonte de verdade por entidade antes de escrever código.
+- Preferir leitura/importação antes de escrita bidirecional.
+- CSV/XLSX validado é aceitável no piloto quando não houver API formal.
+- Toda entidade importada deve preservar `external_system`, `external_id` e
+  data da última sincronização quando aplicável.
+- Importações precisam ser idempotentes e gerar relatório de criados,
+  atualizados, ignorados e rejeitados.
+- Erros devem apontar linha/campo/motivo de forma compreensível para operador.
+- Escrita em sistema legado exige regra de conflito, auditoria e aceite formal.
+- Fixtures reais devem ser anonimizadas antes de entrar no repositório.
+
 ## Estrutura do monorepo
 
 ```
@@ -83,13 +127,14 @@ cadernedu/
 │       │       ├── pedagogico/ aulas, atividades de casa, agenda ✅
 │       │       ├── comunicacao/mensagens + anexos (placeholder)
 │       │       ├── gestao/     matrículas, frequência (placeholder)
-│       │       └── analytics/  indicadores, evasão (placeholder)
+│       │       ├── analytics/  indicadores, evasão (placeholder)
+│       │       └── integrations/ conectores e importações (planejado)
 │       └── alembic/            migrations: 0001 schema inicial, 0002 turmas+agenda
 ├── infra/
 │   ├── docker-compose.yml      Base canônica
 │   ├── docker-compose.override.yml  Dev local (auto-carregado)
 │   ├── docker-compose.ci.yml   CI/CD
-│   ├── traefik/traefik.yml     Reverse proxy
+│   ├── docker-compose.portainer.yml Deploy remoto via Portainer
 │   └── postgres/init/          Scripts de inicialização do banco
 └── docs/
     ├── architecture.md
@@ -108,7 +153,7 @@ cadernedu/
 ```
 feat(pedagogico): add agenda online endpoints
 fix(identity): correct turma unique constraint
-chore(infra): fix traefik network label
+chore(infra): adjust portainer compose ports
 docs(openapi): add pedagogico and feature flags schemas
 ```
 
@@ -187,6 +232,7 @@ docs(openapi): add pedagogico and feature flags schemas
 5. **Testes obrigatórios** para serviços (`services/`) — mínimo 70% de cobertura
 6. **Documentar decisões** importantes em `docs/adr/`
 7. **Verificar feature flag** em todo endpoint de domínio antes de processar
+8. **Checar fonte de verdade externa** antes de implementar cadastro, matrícula, nota ou frequência
 
 ## Infra — Docker Compose
 
@@ -196,7 +242,8 @@ A stack usa três arquivos compose + `COMPOSE_FILE` no `.env` raiz:
 |---|---|
 | `infra/docker-compose.yml` | Base canônica — nunca rodar direto |
 | `infra/docker-compose.override.yml` | Dev local (carregado automaticamente via COMPOSE_FILE) |
-| `infra/docker-compose.ci.yml` | CI/CD — tmpfs, sem Traefik, sem apps web |
+| `infra/docker-compose.ci.yml` | CI/CD — tmpfs, sem apps web |
+| `infra/docker-compose.portainer.yml` | Deploy remoto via Portainer, sem Traefik |
 
 ```bash
 # Primeira vez
@@ -214,13 +261,12 @@ docker compose ps              # status
 
 | Serviço | URL |
 |---|---|
-| Landing (web_site) | http://cadernedu.localhost |
-| Painel (web_painel) | http://painel.localhost |
-| API + Swagger | http://api.localhost/docs ou http://localhost:8000/docs |
-| Traefik Dashboard | http://localhost:8080/dashboard/ |
-| MinIO Console | http://minio.localhost ou http://localhost:9001 |
-| Keycloak | http://keycloak.localhost ou http://localhost:8180 |
-| Mailhog | http://mailhog.localhost ou http://localhost:8025 |
+| Landing (web_site) | http://localhost:3000 |
+| Painel (web_painel) | http://localhost:3001 |
+| API + Swagger | http://localhost:8000/docs |
+| MinIO Console | http://localhost:9001 |
+| Keycloak | http://localhost:8180 |
+| Mailhog | http://localhost:8025 |
 | Postgres (direto) | localhost:5432 |
 | Redis (direto) | localhost:6379 |
 

@@ -12,8 +12,8 @@ export default function Footer() {
               </span>
             </a>
             <p className="mt-4 text-[15px] leading-[1.55] max-w-[320px]">
-              Plataforma de educação pública municipal. Apps nativos para iOS e Android, painel
-              web para professores e secretarias.
+              Plataforma de educação pública municipal com apps nativos, painel web e
+              integrações para sistemas já usados pela rede.
             </p>
           </div>
 
@@ -40,10 +40,10 @@ export default function Footer() {
         </div>
 
         <div className="flex justify-between items-center pt-7 flex-wrap gap-4 text-[13px] text-white/50">
-          <div>© 2026 CadernEdu · CNPJ 00.000.000/0001-00</div>
+          <div>© 2026 CadernEdu · Plataforma em fase de piloto institucional</div>
           <div className="flex gap-3">
-            <Badge dotColor="#1B7B3F" label="LGPD compliant" />
-            <Badge dotColor="#0891B2" label="WCAG AA" />
+            <Badge dotColor="#1B7B3F" label="LGPD by design" />
+            <Badge dotColor="#0891B2" label="WCAG AA ready" />
             <Badge dotColor="#FBBF24" label="Gov.br ready" />
           </div>
         </div>

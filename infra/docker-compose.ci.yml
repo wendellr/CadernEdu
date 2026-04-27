@@ -5,16 +5,12 @@
 #
 # Diferenças em relação ao dev:
 #   - Volumes substituídos por tmpfs (zero estado entre runs, mais rápido)
-#   - Traefik desabilitado (CI acessa serviços diretamente pelas portas)
+#   - CI acessa serviços diretamente pelas portas
 #   - Healthchecks com intervalos curtos (evita espera desnecessária)
 #   - Keycloak/Mailhog desabilitados (testes de API não precisam)
 #   - SECRET_KEY obrigatório em .env do CI ou via secret do runner
 
 services:
-
-  traefik:
-    # Não é necessário em CI — testes acessam a API diretamente em :8000
-    profiles: [disabled-in-ci]
 
   postgres:
     ports:

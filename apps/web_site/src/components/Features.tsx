@@ -31,16 +31,16 @@ function FeatureBNCC() {
           Aprender vira hábito quando vira jornada.
         </h2>
         <p className="text-[18px] text-fg-dim max-w-[480px]">
-          Trilhas alinhadas à BNCC com missões diárias, gamificação responsável e modo offline
-          para escolas com conectividade limitada.
+          Agenda, tarefas e trilhas alinhadas à BNCC, com experiência pensada para
+          conectividade limitada e rotina real da escola pública.
         </p>
         <ul className="flex flex-col gap-3.5 my-7 list-none p-0">
           {[
-            'Modo offline real — baixa o conteúdo do dia antes de sair de casa',
-            'Missões diárias com streak inteligente que respeita fim de semana',
-            'Tutor IA "Edu" com guard-rails pedagógicos (BNCC-aligned)',
-            'Avatar evolutivo dos mascotes — progresso visível, motivação real',
-            'Trilhas de robótica e sistemas embarcados integradas à jornada',
+            'Agenda e atividades visíveis para aluno, família e professor',
+            'Conteúdos organizados por turma, série e componente curricular',
+            'Modo offline planejado para uso em escolas com internet instável',
+            'Trilhas BNCC e robótica como módulos opcionais por contrato',
+            'Tutor IA previsto para fase posterior, com governança pedagógica',
           ].map((item) => (
             <li key={item} className="grid grid-cols-[28px_1fr] gap-3.5 text-[16px]">
               <CheckIcon />
@@ -74,16 +74,16 @@ function FeatureFamilia() {
           Saber como o filho está, sem grupo paralelo no WhatsApp.
         </h2>
         <p className="text-[18px] text-fg-dim max-w-[480px]">
-          Comunicação direta com a escola, autorizações digitais e o ônibus escolar em tempo real
-          — sem precisar do número pessoal de ninguém.
+          Comunicação direta com a escola, comunicados oficiais e acompanhamento da
+          rotina escolar sem depender do número pessoal de professores.
         </p>
         <ul className="flex flex-col gap-3.5 my-7 list-none p-0">
           {[
-            'Ônibus escolar em tempo real — sem ligar pra ninguém',
-            'Cardápio semanal da merenda direto no app',
-            'Boletim conversacional em linguagem clara, sem jargão escolar',
-            'Notificações que substituem os grupos de WhatsApp',
-            'Resumo semanal por SMS pra quem não tem smartphone',
+            'Comunicados oficiais por turma, escola ou secretaria',
+            'Agenda e atividades da semana em linguagem simples',
+            'Anexos, documentos e autorizações em um canal institucional',
+            'Notificações que reduzem dependência de grupos informais',
+            'Merenda, transporte e boletim entram conforme integração disponível',
           ].map((item) => (
             <li key={item} className="grid grid-cols-[28px_1fr] gap-3.5 text-[16px]">
               <CheckIcon color="#FB7185" />
@@ -119,15 +119,15 @@ function FeatureGestao() {
           Decisões baseadas em dados — não em planilha de ouvido.
         </h2>
         <p className="text-[18px] text-fg-dim max-w-[480px]">
-          Indicadores em tempo real por escola, bairro e turma. Alertas de evasão antes do
-          problema virar estatística.
+          Uma visão consolidada para a secretaria, alimentada por dados próprios do
+          CadernEdu e por integrações com sistemas oficiais existentes.
         </p>
         <ul className="flex flex-col gap-3.5 my-7 list-none p-0">
           {[
-            'Dashboard de equidade por região',
-            'Censo escolar pré-formatado para o INEP',
-            'Mapa de calor de evasão geográfico',
-            'Comunicados em massa segmentados',
+            'Importação inicial de escolas, turmas, alunos e matrículas',
+            'Painel de status das integrações e erros de sincronização',
+            'Indicadores por escola a partir de dados auditáveis',
+            'Exportações e conectores evoluem conforme o sistema legado',
           ].map((item) => (
             <li key={item} className="grid grid-cols-[28px_1fr] gap-3.5 text-[16px]">
               <CheckIcon color="#A78BFA" />
@@ -191,12 +191,12 @@ function MockScreenFamilia() {
         <div className="text-[12px] text-fg-faint">Mãe da Lara · 5º A</div>
         <div className="rounded-[18px] p-4 text-white" style={{ background: 'linear-gradient(135deg, #FB7185 0%, #A78BFA 100%)' }}>
           <div className="text-[10px] uppercase tracking-[0.1em] opacity-85">Esta semana</div>
-          <div className="font-display font-bold text-[16px] mt-1">Lara entregou 5/5 tarefas 🎉</div>
+          <div className="font-display font-bold text-[16px] mt-1">Atividades da semana</div>
           <div className="h-1.5 rounded-full bg-white/25 mt-3 overflow-hidden">
             <div className="w-full h-full rounded-full bg-yellow" />
           </div>
         </div>
-        <MockRow color="#0891B2" name="Ônibus a 4 min" meta="Linha 02 · Ao vivo" />
+        <MockRow color="#0891B2" name="Transporte escolar" meta="Módulo opcional" />
         <MockRow color="#1B7B3F" name="Reunião de pais" meta="Sex 26 · 19h" />
       </div>
     </div>
@@ -217,9 +217,9 @@ function MockScreenGestao() {
           <span>Visão geral · Rede</span><span>● ●</span>
         </div>
         <div className="grid grid-cols-3 gap-2 mt-2">
-          <StatMini label="Frequência" value="94%" color="#1B7B3F" />
-          <StatMini label="Evasão" value="2,1%" color="#FB7185" />
-          <StatMini label="IDEB proj." value="5,8" color="#0891B2" />
+          <StatMini label="Integração" value="CSV" color="#1B7B3F" />
+          <StatMini label="Pendências" value="Revisar" color="#FB7185" />
+          <StatMini label="Destino" value="Painel" color="#0891B2" />
         </div>
         <div className="flex items-end gap-1 h-20 mt-2">
           {bars.map((h, i) => (
@@ -230,7 +230,7 @@ function MockScreenGestao() {
             />
           ))}
         </div>
-        <div className="text-[10px] text-fg-faint">Engajamento · 7 dias</div>
+        <div className="text-[10px] text-fg-faint">Status de carga e reconciliação</div>
       </div>
     </div>
   )

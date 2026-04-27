@@ -2,28 +2,28 @@ const ops = [
   {
     icon: '🚌',
     title: 'Transporte escolar',
-    desc: 'Rastreamento em tempo real, rotas e comunicação com motoristas — família sabe onde o ônibus está antes de chegar ao ponto.',
+    desc: 'Módulo opcional para rotas, frota e comunicação com famílias quando a prefeitura tiver dados ou fornecedor integrável.',
     color: '#0891B2',
     bg: '#E0F2FE',
   },
   {
     icon: '🍽️',
     title: 'Cardápio da merenda',
-    desc: 'Cardápio semanal publicado pela secretaria, com informações nutricionais e registro de alérgenos por turma.',
+    desc: 'Publicação de cardápio e informações nutricionais a partir de cadastro próprio ou importação do sistema usado pela secretaria.',
     color: '#1B7B3F',
     bg: '#E6F4EA',
   },
   {
     icon: '📊',
     title: 'Frequência e presença',
-    desc: 'Chamada digital com alertas automáticos de ausência para as famílias. Relatórios consolidados por escola e rede.',
+    desc: 'Chamada digital para piloto e consolidação por escola, com política clara sobre qual sistema é fonte oficial.',
     color: '#A78BFA',
     bg: '#EDE9FE',
   },
   {
     icon: '📢',
     title: 'Comunicados oficiais',
-    desc: 'Canal único para comunicados da escola e da secretaria. Confirmação de leitura, segmentação por turma ou série.',
+    desc: 'Canal institucional para comunicados da escola e da secretaria, com segmentação por turma, série ou escola.',
     color: '#FB7185',
     bg: '#FFE4E6',
   },
@@ -38,10 +38,12 @@ export default function Operations() {
             Operação escolar essencial
           </span>
           <h2 className="text-[clamp(28px,3.2vw,44px)] font-display font-bold tracking-[-0.02em] mb-4">
-            Feito para a realidade da escola pública — não para ERP de escola particular.
+            Feito para conviver com a realidade da escola pública.
           </h2>
           <p className="text-[17px] text-fg-dim leading-[1.6]">
-            CadernEdu resolve as operações do dia a dia que nenhuma plataforma de gestão trata com seriedade: o ônibus, a merenda, a chamada e o comunicado que a família precisa receber.
+            O CadernEdu começa pelo que reduz ruído no cotidiano: chamada, agenda,
+            comunicados e carga inicial de dados. Merenda, transporte e indicadores
+            entram por módulos e integrações conforme a rede estiver pronta.
           </p>
         </div>
 

@@ -9,16 +9,12 @@
 #   Full: docker compose --profile full up -d          (inclui Keycloak + Mailhog)
 
 # Nome fixo do projeto — garante que as redes se chamem sempre
-# cadernedu_proxy, cadernedu_backend, cadernedu_data
+# cadernedu_backend, cadernedu_data
 # independente do diretório de onde o compose é executado.
 name: cadernedu
 
 networks:
-  # Tráfego externo: Traefik ↔ serviços públicos
-  proxy:
-    driver: bridge
-
-  # Comunicação interna: API ↔ banco, redis, minio, keycloak
+  # Comunicação interna: API ↔ apps web ↔ banco, redis, minio, keycloak
   backend:
     driver: bridge
 
@@ -39,32 +35,8 @@ volumes:
     labels:
       com.cadernedu.backup: "true"
       com.cadernedu.service: minio
-  letsencrypt:
-    labels:
-      com.cadernedu.service: traefik
 
 services:
-
-  # ── Reverse proxy ────────────────────────────────────────────────────────────
-
-  traefik:
-    image: traefik:v3.0
-    container_name: cadernedu-traefik
-    restart: unless-stopped
-    networks: [proxy, backend]
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - letsencrypt:/letsencrypt
-    labels:
-      traefik.enable: "true"
-      # Dashboard — acessível em http://traefik.localhost/dashboard/
-      traefik.http.routers.traefik.rule: "Host(`traefik.localhost`)"
-      traefik.http.routers.traefik.service: "api@internal"
-    deploy:
-      resources:
-        limits:
-          memory: 128M
 
   # ── Datastores (rede data — internal) ────────────────────────────────────────
 
@@ -128,12 +100,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.minio-console.rule: "Host(`minio.localhost`)"
-      traefik.http.routers.minio-console.service: minio-console
-      traefik.http.services.minio-console.loadbalancer.server.port: "9001"
-      traefik.docker.network: cadernedu_backend
     deploy:
       resources:
         limits:
@@ -168,7 +134,7 @@ services:
     image: cadernedu/api:${IMAGE_TAG:-local}
     container_name: cadernedu-api
     restart: unless-stopped
-    networks: [proxy, backend, data]
+    networks: [backend, data]
     environment:
       DATABASE_URL:    postgresql+asyncpg://${POSTGRES_USER:-cadernedu}:${POSTGRES_PASSWORD:-dev}@postgres:5432/${POSTGRES_DB:-cadernedu_dev}
       REDIS_URL:       redis://redis:6379
@@ -197,11 +163,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.api.rule: "Host(`api.localhost`)"
-      traefik.http.services.api.loadbalancer.server.port: "8000"
-      traefik.docker.network: cadernedu_proxy
     deploy:
       # Em prod: aumentar replicas para escalar horizontalmente
       replicas: 1
@@ -222,10 +183,10 @@ services:
     image: cadernedu/web_site:${IMAGE_TAG:-local}
     container_name: cadernedu-web_site
     restart: unless-stopped
-    networks: [proxy]
+    networks: [backend]
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://api.localhost
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
       api:
         condition: service_healthy
@@ -235,11 +196,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.web_site.rule: "Host(`cadernedu.localhost`)"
-      traefik.http.services.web_site.loadbalancer.server.port: "3000"
-      traefik.docker.network: cadernedu_proxy
     deploy:
       resources:
         limits:
@@ -252,10 +208,10 @@ services:
     image: cadernedu/web_painel:${IMAGE_TAG:-local}
     container_name: cadernedu-web_painel
     restart: unless-stopped
-    networks: [proxy]
+    networks: [backend]
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://api.localhost
+      NEXT_PUBLIC_API_URL: http://localhost:8000/v1
     depends_on:
       api:
         condition: service_healthy
@@ -265,11 +221,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.web_painel.rule: "Host(`painel.localhost`)"
-      traefik.http.services.web_painel.loadbalancer.server.port: "3001"
-      traefik.docker.network: cadernedu_proxy
     deploy:
       resources:
         limits:
@@ -282,7 +233,7 @@ services:
     container_name: cadernedu-keycloak
     restart: unless-stopped
     profiles: [full]
-    networks: [proxy, backend, data]
+    networks: [backend, data]
     command: start-dev
     environment:
       KEYCLOAK_ADMIN:          ${KEYCLOAK_ADMIN:-admin}
@@ -294,11 +245,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.keycloak.rule: "Host(`keycloak.localhost`)"
-      traefik.http.services.keycloak.loadbalancer.server.port: "8080"
-      traefik.docker.network: cadernedu_proxy
     deploy:
       resources:
         limits:
@@ -309,12 +255,7 @@ services:
     container_name: cadernedu-mailhog
     restart: unless-stopped
     profiles: [full]
-    networks: [proxy, backend]
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.mailhog.rule: "Host(`mailhog.localhost`)"
-      traefik.http.services.mailhog.loadbalancer.server.port: "8025"
-      traefik.docker.network: cadernedu_proxy
+    networks: [backend]
     deploy:
       resources:
         limits:
