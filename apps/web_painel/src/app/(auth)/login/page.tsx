@@ -12,6 +12,7 @@ type FormValues = { email: string; senha: string }
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
   const {
     register,
@@ -33,6 +34,7 @@ export default function LoginPage() {
       router.replace('/')
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Falha ao conectar com o servidor'
+      setErro(msg)
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -93,9 +95,16 @@ export default function LoginPage() {
               {errors.senha && <p className="mt-1 text-xs text-coral">{errors.senha.message}</p>}
             </div>
 
+            {erro && (
+              <div className="rounded-btn bg-coral/10 border border-coral/30 px-3 py-2.5 text-sm text-coral">
+                {erro}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
+              onClick={() => setErro(null)}
               className="mt-2 w-full rounded-btn bg-cyan text-white font-semibold text-sm py-2.5 hover:bg-cyan-deep transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan focus-visible:ring-offset-2"
             >
               {loading ? 'Entrando…' : 'Entrar'}
