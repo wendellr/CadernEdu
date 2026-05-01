@@ -159,9 +159,9 @@ export function Sidebar() {
             </p>
             <div className="space-y-1">
               {group.items.map((item) => {
-                const active = item.href === '/turmas'
-                  ? pathname === '/turmas'
-                  : pathname.startsWith(item.href)
+                const active = item.href === '/turmas' || item.href === '/secretaria'
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`)
                 if (item.disabled) {
                   return (
                     <div
