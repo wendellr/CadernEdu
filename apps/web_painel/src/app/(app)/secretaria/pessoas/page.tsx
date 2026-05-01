@@ -1,14 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSearchParams } from 'next/navigation'
 import { getSecretariaAtiva, getUser } from '@/lib/auth'
 import { criarUsuario, listEscolas, listUsuarios, removerUsuario, type Escola, type PerfilUsuario, type Usuario } from '@/lib/api'
 import { Field, Modal, inputClass, selectClass } from '@/components/ui/Modal'
+import { QuickSearch, SortHeader, compareValues, normalizeSearch, type SortDirection } from '@/components/ui/listing'
 
 type Tab = 'alunos' | 'professores' | 'direcao' | 'responsaveis' | 'secretaria'
+type SortKey = 'nome' | 'email' | 'perfil' | 'ativo'
 
 const TABS: { key: Tab; label: string; perfil: PerfilUsuario }[] = [
   { key: 'alunos', label: 'Alunos', perfil: 'aluno' },
@@ -36,6 +38,8 @@ export default function PessoasPage() {
   const [usuarios, setUsuarios] = useState<Record<Tab, Usuario[]>>({
     alunos: [], professores: [], direcao: [], responsaveis: [], secretaria: [],
   })
+  const [busca, setBusca] = useState('')
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'nome', direction: 'asc' })
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
@@ -124,6 +128,24 @@ export default function PessoasPage() {
     }
   }
 
+  function ordenarPor(key: SortKey) {
+    setSort((atual) => ({
+      key,
+      direction: atual.key === key && atual.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+
+  const listaVisivel = useMemo(() => {
+    const termo = normalizeSearch(busca)
+    return lista
+      .filter((u) => {
+        if (!termo) return true
+        return [u.nome, u.email, PERFIL_LABEL[u.perfil], u.perfil, u.ativo ? 'ativo' : 'inativo']
+          .some((valor) => normalizeSearch(valor).includes(termo))
+      })
+      .sort((a, b) => compareValues(a[sort.key], b[sort.key], sort.direction))
+  }, [busca, lista, sort])
+
   return (
     <div className="max-w-5xl">
       <div className="flex items-start justify-between mb-6">
@@ -161,6 +183,19 @@ export default function PessoasPage() {
         ))}
       </div>
 
+      {!loading && lista.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <QuickSearch
+            value={busca}
+            onChange={setBusca}
+            placeholder="Buscar nome, e-mail ou perfil"
+          />
+          <p className="text-xs text-fg-faint">
+            {listaVisivel.length} de {lista.length} registro{lista.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
@@ -178,20 +213,25 @@ export default function PessoasPage() {
             Cadastrar agora
           </button>
         </div>
+      ) : listaVisivel.length === 0 ? (
+        <div className="flex flex-col items-center py-20 gap-3 text-center">
+          <Users size={36} className="text-fg-faint" />
+          <p className="text-fg-dim text-sm">Nenhum registro encontrado para a busca.</p>
+        </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-bg-alt border-b border-border">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Nome</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">E-mail</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Perfil</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Status</th>
+                <th className="px-4 py-3"><SortHeader label="Nome" active={sort.key === 'nome'} direction={sort.direction} onClick={() => ordenarPor('nome')} /></th>
+                <th className="px-4 py-3"><SortHeader label="E-mail" active={sort.key === 'email'} direction={sort.direction} onClick={() => ordenarPor('email')} /></th>
+                <th className="px-4 py-3"><SortHeader label="Perfil" active={sort.key === 'perfil'} direction={sort.direction} onClick={() => ordenarPor('perfil')} align="center" /></th>
+                <th className="px-4 py-3"><SortHeader label="Status" active={sort.key === 'ativo'} direction={sort.direction} onClick={() => ordenarPor('ativo')} align="center" /></th>
                 <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {lista.map((u) => (
+              {listaVisivel.map((u) => (
                 <tr key={u.id} className="hover:bg-bg-alt/50 transition-colors">
                   <td className="px-4 py-3 font-medium text-fg">{u.nome}</td>
                   <td className="px-4 py-3 text-fg-faint text-xs">{u.email}</td>

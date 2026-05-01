@@ -1,18 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Building2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSecretariaAtiva } from '@/lib/auth'
 import { criarEscola, listEscolas, listTurmas, removerEscola, type Escola } from '@/lib/api'
 import { Field, Modal, inputClass } from '@/components/ui/Modal'
+import { QuickSearch, SortHeader, compareValues, normalizeSearch, type SortDirection } from '@/components/ui/listing'
 
 interface EscolaComTurmas extends Escola {
   totalTurmas?: number
 }
 
+type SortKey = 'nome' | 'codigo_inep' | 'totalTurmas' | 'ativo'
+
 export default function EscolasPage() {
   const [escolas, setEscolas] = useState<EscolaComTurmas[]>([])
+  const [busca, setBusca] = useState('')
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'nome', direction: 'asc' })
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -79,6 +84,24 @@ export default function EscolasPage() {
     }
   }
 
+  function ordenarPor(key: SortKey) {
+    setSort((atual) => ({
+      key,
+      direction: atual.key === key && atual.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+
+  const escolasVisiveis = useMemo(() => {
+    const termo = normalizeSearch(busca)
+    return escolas
+      .filter((e) => {
+        if (!termo) return true
+        return [e.nome, e.codigo_inep, e.ativo ? 'ativa' : 'inativa', e.totalTurmas]
+          .some((valor) => normalizeSearch(valor).includes(termo))
+      })
+      .sort((a, b) => compareValues(a[sort.key], b[sort.key], sort.direction))
+  }, [busca, escolas, sort])
+
   return (
     <div className="max-w-4xl">
       <div className="flex items-start justify-between mb-6">
@@ -95,6 +118,19 @@ export default function EscolasPage() {
         </button>
       </div>
 
+      {!loading && escolas.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <QuickSearch
+            value={busca}
+            onChange={setBusca}
+            placeholder="Buscar escola, INEP ou status"
+          />
+          <p className="text-xs text-fg-faint">
+            {escolasVisiveis.length} de {escolas.length} escola{escolas.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
@@ -106,20 +142,25 @@ export default function EscolasPage() {
           <Building2 size={36} className="text-fg-faint" />
           <p className="text-fg-dim text-sm">Nenhuma escola cadastrada.</p>
         </div>
+      ) : escolasVisiveis.length === 0 ? (
+        <div className="flex flex-col items-center py-20 gap-3 text-center">
+          <Building2 size={36} className="text-fg-faint" />
+          <p className="text-fg-dim text-sm">Nenhuma escola encontrada para a busca.</p>
+        </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-bg-alt border-b border-border">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Nome</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Cód. INEP</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Turmas</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Status</th>
+                <th className="px-4 py-3"><SortHeader label="Nome" active={sort.key === 'nome'} direction={sort.direction} onClick={() => ordenarPor('nome')} /></th>
+                <th className="px-4 py-3"><SortHeader label="Cód. INEP" active={sort.key === 'codigo_inep'} direction={sort.direction} onClick={() => ordenarPor('codigo_inep')} /></th>
+                <th className="px-4 py-3"><SortHeader label="Turmas" active={sort.key === 'totalTurmas'} direction={sort.direction} onClick={() => ordenarPor('totalTurmas')} align="center" /></th>
+                <th className="px-4 py-3"><SortHeader label="Status" active={sort.key === 'ativo'} direction={sort.direction} onClick={() => ordenarPor('ativo')} align="center" /></th>
                 <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {escolas.map((e) => (
+              {escolasVisiveis.map((e) => (
                 <tr key={e.id} className="hover:bg-bg-alt/50 transition-colors">
                   <td className="px-4 py-3 font-medium text-fg">{e.nome}</td>
                   <td className="px-4 py-3 text-fg-faint font-mono text-xs">{e.codigo_inep ?? '—'}</td>

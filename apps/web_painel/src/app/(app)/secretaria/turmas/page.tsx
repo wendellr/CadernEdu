@@ -1,15 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, School } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSecretariaAtiva } from '@/lib/auth'
 import { criarTurma, listEscolas, listTurmas, removerTurma, type Escola, type Turma } from '@/lib/api'
 import { Field, Modal, inputClass, selectClass } from '@/components/ui/Modal'
+import { QuickSearch, SortHeader, compareValues, normalizeSearch, type SortDirection } from '@/components/ui/listing'
 
 interface TurmaComEscola extends Turma {
   escolaNome: string
 }
+
+type SortKey = 'nome' | 'serie' | 'escolaNome' | 'ano_letivo' | 'ativo'
 
 const SERIES = [
   '1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano',
@@ -21,6 +24,8 @@ export default function TurmasPage() {
   const [escolas, setEscolas] = useState<Escola[]>([])
   const [turmas, setTurmas] = useState<TurmaComEscola[]>([])
   const [escolaFiltro, setEscolaFiltro] = useState<string>('')
+  const [busca, setBusca] = useState('')
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'nome', direction: 'asc' })
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(false)
   const [salvando, setSalvando] = useState(false)
@@ -91,9 +96,24 @@ export default function TurmasPage() {
     }
   }
 
-  const turmasFiltradas = escolaFiltro
-    ? turmas.filter((t) => t.escola_id === escolaFiltro)
-    : turmas
+  function ordenarPor(key: SortKey) {
+    setSort((atual) => ({
+      key,
+      direction: atual.key === key && atual.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+
+  const turmasFiltradas = useMemo(() => {
+    const termo = normalizeSearch(busca)
+    return turmas
+      .filter((t) => !escolaFiltro || t.escola_id === escolaFiltro)
+      .filter((t) => {
+        if (!termo) return true
+        return [t.nome, t.serie, t.escolaNome, t.ano_letivo, t.ativo ? 'ativa' : 'inativa']
+          .some((valor) => normalizeSearch(valor).includes(termo))
+      })
+      .sort((a, b) => compareValues(a[sort.key], b[sort.key], sort.direction))
+  }, [busca, escolaFiltro, sort, turmas])
 
   return (
     <div className="max-w-5xl">
@@ -112,8 +132,15 @@ export default function TurmasPage() {
       </div>
 
       {/* Filtro por escola */}
-      {escolas.length > 1 && (
-        <div className="mb-4">
+      {!loading && turmas.length > 0 && (
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <QuickSearch
+              value={busca}
+              onChange={setBusca}
+              placeholder="Buscar turma, série ou escola"
+            />
+            {escolas.length > 1 && (
           <select
             className="rounded-lg border border-border bg-card text-sm text-fg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan/40"
             value={escolaFiltro}
@@ -124,6 +151,11 @@ export default function TurmasPage() {
               <option key={e.id} value={e.id}>{e.nome}</option>
             ))}
           </select>
+            )}
+          </div>
+          <p className="text-xs text-fg-faint">
+            {turmasFiltradas.length} de {turmas.length} turma{turmas.length !== 1 ? 's' : ''}
+          </p>
         </div>
       )}
 
@@ -136,18 +168,20 @@ export default function TurmasPage() {
       ) : turmasFiltradas.length === 0 ? (
         <div className="flex flex-col items-center py-20 gap-3 text-center">
           <School size={36} className="text-fg-faint" />
-          <p className="text-fg-dim text-sm">Nenhuma turma encontrada.</p>
+          <p className="text-fg-dim text-sm">
+            {turmas.length === 0 ? 'Nenhuma turma encontrada.' : 'Nenhuma turma encontrada para os filtros.'}
+          </p>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-bg-alt border-b border-border">
               <tr>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Turma</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Série</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Escola</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Ano Letivo</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Status</th>
+                <th className="px-4 py-3"><SortHeader label="Turma" active={sort.key === 'nome'} direction={sort.direction} onClick={() => ordenarPor('nome')} /></th>
+                <th className="px-4 py-3"><SortHeader label="Série" active={sort.key === 'serie'} direction={sort.direction} onClick={() => ordenarPor('serie')} /></th>
+                <th className="px-4 py-3"><SortHeader label="Escola" active={sort.key === 'escolaNome'} direction={sort.direction} onClick={() => ordenarPor('escolaNome')} /></th>
+                <th className="px-4 py-3"><SortHeader label="Ano Letivo" active={sort.key === 'ano_letivo'} direction={sort.direction} onClick={() => ordenarPor('ano_letivo')} align="center" /></th>
+                <th className="px-4 py-3"><SortHeader label="Status" active={sort.key === 'ativo'} direction={sort.direction} onClick={() => ordenarPor('ativo')} align="center" /></th>
                 <th className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider text-fg-faint">Ações</th>
               </tr>
             </thead>

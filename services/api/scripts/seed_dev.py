@@ -121,7 +121,16 @@ async def seed():
                 escola_id=escola.id,
                 ativo=True,
             )
-            session.add(professor)
+            professor_multi = Usuario(
+                keycloak_id="dev-multi-professor-001",
+                nome="Multi Perfil",
+                email="multi@teste.edu.br",
+                perfil=PerfilUsuario.professor,
+                secretaria_id=secretaria.id,
+                escola_id=escola.id,
+                ativo=True,
+            )
+            session.add_all([professor, professor_multi])
 
             # ── Alunos ────────────────────────────────────────────────────────
             aluno1 = Usuario(
@@ -153,7 +162,15 @@ async def seed():
                 secretaria_id=secretaria.id,
                 ativo=True,
             )
-            session.add(responsavel)
+            responsavel_multi = Usuario(
+                keycloak_id="dev-multi-responsavel-001",
+                nome="Multi Perfil",
+                email="multi@teste.edu.br",
+                perfil=PerfilUsuario.responsavel,
+                secretaria_id=secretaria.id,
+                ativo=True,
+            )
+            session.add_all([responsavel, responsavel_multi])
             await session.flush()
 
             # ── Vínculos responsável → filhos ─────────────────────────────────
@@ -161,6 +178,7 @@ async def seed():
                 [
                     ResponsavelAluno(responsavel_id=responsavel.id, aluno_id=aluno1.id),
                     ResponsavelAluno(responsavel_id=responsavel.id, aluno_id=aluno2.id),
+                    ResponsavelAluno(responsavel_id=responsavel_multi.id, aluno_id=aluno2.id),
                 ]
             )
 
@@ -174,6 +192,12 @@ async def seed():
                     ),
                     ProfessorTurma(
                         professor_id=professor.id,
+                        turma_id=turma_3b.id,
+                        ano_letivo=2026,
+                        ativo=True,
+                    ),
+                    ProfessorTurma(
+                        professor_id=professor_multi.id,
                         turma_id=turma_3b.id,
                         ano_letivo=2026,
                         ativo=True,
@@ -215,6 +239,7 @@ async def seed():
         print("   Diretor   : diretor@teste.edu.br")
         print("   Coordenação: coordenador@teste.edu.br")
         print("   Professor  : professor@teste.edu.br")
+        print("   Multiperfil: multi@teste.edu.br → professor + responsavel")
         print(f"   Aluno 1    : aluno@teste.edu.br   → {turma_5a.nome}")
         print(f"   Aluno 2    : aluno2@teste.edu.br  → {turma_3b.nome}")
         print("   Responsável: responsavel@teste.edu.br → 2 filhos")

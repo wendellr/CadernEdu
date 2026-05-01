@@ -90,6 +90,11 @@ PROFESSORES = [
         "email": "juliana.ferreira@demo.edu.br",
         "keycloak_id": "demo-prof-003",
     },
+    {
+        "nome": "Paulo Multi Perfil",
+        "email": "multi@demo.edu.br",
+        "keycloak_id": "demo-multi-prof-001",
+    },
 ]
 
 SECRETARIA_USUARIOS = [
@@ -135,6 +140,7 @@ RESPONSAVEIS = [
     ("Roberto Sousa", "roberto@demo.edu.br", "demo-resp-002", [1]),           # Beatriz
     ("Patrícia Lima", "patricia@demo.edu.br", "demo-resp-003", [2, 4]),       # Gabriel + Matheus
     ("Fernando Santos", "fernando@demo.edu.br", "demo-resp-004", [5, 6]),     # Larissa + Felipe
+    ("Paulo Multi Perfil", "multi@demo.edu.br", "demo-multi-resp-001", [7]),  # Isabela
 ]
 
 DISCIPLINAS_F1 = ["Matemática", "Português", "Ciências", "História", "Geografia", "Arte", "Ed. Física"]
@@ -528,6 +534,9 @@ def _print_summary(ctx: SeedContext) -> None:
     for r, (_, _, _, filhos_idx) in zip(ctx.responsaveis, RESPONSAVEIS):
         filhos = [ctx.alunos[i].nome.split()[0] for i in filhos_idx]
         print(f"   {r.email}  →  filhos: {', '.join(filhos)}")
+    print()
+    print("   ── Login multiperfil ─────────────────────")
+    print("   multi@demo.edu.br  →  professor + responsavel")
     print()
     print("   ── Alunos ────────────────────────────────")
     for a, (_, _, _, turma_idx) in zip(ctx.alunos, ALUNOS):

@@ -55,23 +55,46 @@ Acesse:
 - **Mailhog** → http://localhost:8025
 - **Keycloak** → http://localhost:8180 _(user: admin / senha: admin)_
 
-### Logins de demonstração
+### Usuários e senhas do ambiente demo
 
-Em desenvolvimento, a senha é ignorada pela API local. Use qualquer valor com
-ao menos 8 caracteres no painel web.
+No ambiente demo/Portainer, mantenha `ENVIRONMENT=staging`. Nesse modo, a API
+local de autenticação fica habilitada e a senha é ignorada; use a senha padrão
+abaixo para todas as contas:
 
-| Perfil | E-mail | Escopo |
-|---|---|---|
-| Secretaria | `secretaria@demo.edu.br` | SME São Gabriel inteira |
-| Diretor | `diretor.nair@demo.edu.br` | EMEF Profª Nair Rodrigues |
-| Coordenador | `coordenador.dompedro@demo.edu.br` | EMEF Dom Pedro II |
-| Professor | `ana.costa@demo.edu.br` | Turmas vinculadas ao professor |
-| Responsável | `responsavel@demo.edu.br` | Filhos/tutelados vinculados |
-| Aluno | `lucas@demo.edu.br` | Próprio aluno |
+```text
+Demo@1234
+```
+
+| Perfil | E-mail | Senha | Onde entra | Escopo |
+|---|---|---|---|---|
+| Secretaria | `secretaria@demo.edu.br` | `Demo@1234` | Painel web | SME São Gabriel inteira |
+| Diretor | `diretor.nair@demo.edu.br` | `Demo@1234` | Painel web | EMEF Profª Nair Rodrigues |
+| Coordenador | `coordenador.dompedro@demo.edu.br` | `Demo@1234` | Painel web | EMEF Dom Pedro II |
+| Professor | `ana.costa@demo.edu.br` | `Demo@1234` | Painel web | Turmas vinculadas ao professor |
+| Professor | `ricardo.mendes@demo.edu.br` | `Demo@1234` | Painel web | Turmas vinculadas ao professor |
+| Professor | `juliana.ferreira@demo.edu.br` | `Demo@1234` | Painel web | Turmas vinculadas ao professor |
+| Multiperfil | `multi@demo.edu.br` | `Demo@1234` | Painel web ou App Flutter | Pede escolha entre Professor e Responsável |
+| Responsável | `responsavel@demo.edu.br` | `Demo@1234` | App Flutter | Lucas e Sofia |
+| Responsável | `roberto@demo.edu.br` | `Demo@1234` | App Flutter | Beatriz |
+| Responsável | `patricia@demo.edu.br` | `Demo@1234` | App Flutter | Gabriel e Matheus |
+| Responsável | `fernando@demo.edu.br` | `Demo@1234` | App Flutter | Larissa e Felipe |
+| Aluno | `lucas@demo.edu.br` | `Demo@1234` | App Flutter | 3º Ano A |
+| Aluno | `beatriz@demo.edu.br` | `Demo@1234` | App Flutter | 3º Ano A |
+| Aluno | `gabriel@demo.edu.br` | `Demo@1234` | App Flutter | 5º Ano B |
+| Aluno | `sofia@demo.edu.br` | `Demo@1234` | App Flutter | 5º Ano B |
+| Aluno | `matheus@demo.edu.br` | `Demo@1234` | App Flutter | 4º Ano C |
+| Aluno | `larissa@demo.edu.br` | `Demo@1234` | App Flutter | 6º Ano A |
+| Aluno | `felipe@demo.edu.br` | `Demo@1234` | App Flutter | 6º Ano A |
+| Aluno | `isabela@demo.edu.br` | `Demo@1234` | App Flutter | 2º Ano B |
 
 O endpoint `POST /v1/auth/login-options` retorna os vínculos disponíveis para
 um e-mail. O `POST /v1/auth/login` aceita `usuario_id` para abrir sessão no
 perfil escolhido.
+
+Use `multi@demo.edu.br` para demonstrar o fluxo de escolha pós-login. No painel
+web ele oferece o perfil de professor; no app Flutter ele oferece o perfil de
+responsável. Quando houver dois perfis válidos para o mesmo canal, a tela lista
+as opções para o usuário escolher explicitamente.
 
 ### Demo no Portainer
 
@@ -106,6 +129,20 @@ para ambiente de demonstração, mas não para dados reais.
 
 Os escopos são aplicados no backend; a interface apenas adapta navegação e
 experiência ao perfil selecionado.
+
+## Padrão de listagens
+
+Toda listagem do CadernEdu deve oferecer:
+
+- busca rápida textual;
+- ordenação por colunas relevantes;
+- contagem do total exibido versus total carregado;
+- estado vazio para lista sem dados e para busca sem resultados.
+
+Para listas extensas, o padrão é paginação infinita com auto reload. A API deve
+expor paginação por cursor ou `limit/offset` antes de a tela trocar para carga
+incremental; enquanto o endpoint ainda retorna a coleção completa, a busca e a
+ordenação podem ser client-side apenas para listas pequenas de gestão.
 
 ## Módulos
 
