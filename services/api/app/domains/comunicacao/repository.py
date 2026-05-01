@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -21,13 +21,20 @@ class MensagemRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list_by_turma(self, turma_id: uuid.UUID) -> list[Mensagem]:
-        result = await self.session.execute(
-            select(Mensagem)
-            .options(selectinload(Mensagem.anexos))
-            .where(Mensagem.turma_id == turma_id)
-            .order_by(Mensagem.created_at.desc())
-        )
+    async def list_by_turma(
+        self,
+        turma_id: uuid.UUID,
+        destinatarios_visiveis: set[uuid.UUID] | None = None,
+    ) -> list[Mensagem]:
+        q = select(Mensagem).options(selectinload(Mensagem.anexos)).where(Mensagem.turma_id == turma_id)
+        if destinatarios_visiveis is not None:
+            q = q.where(
+                or_(
+                    Mensagem.destinatario_id.is_(None),
+                    Mensagem.destinatario_id.in_(destinatarios_visiveis),
+                )
+            )
+        result = await self.session.execute(q.order_by(Mensagem.created_at.desc()))
         return list(result.scalars().all())
 
     async def list_by_destinatario(self, destinatario_id: uuid.UUID) -> list[Mensagem]:

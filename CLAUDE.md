@@ -243,7 +243,7 @@ A stack usa três arquivos compose + `COMPOSE_FILE` no `.env` raiz:
 | `infra/docker-compose.yml` | Base canônica — nunca rodar direto |
 | `infra/docker-compose.override.yml` | Dev local (carregado automaticamente via COMPOSE_FILE) |
 | `infra/docker-compose.ci.yml` | CI/CD — tmpfs, sem apps web |
-| `infra/docker-compose.portainer.yml` | Deploy remoto via Portainer, sem Traefik |
+| `infra/docker-compose.portainer.yml` | Deploy remoto via Portainer; proxy reverso externo em Nginx |
 
 ```bash
 # Primeira vez

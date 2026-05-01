@@ -5,13 +5,16 @@ import Link from 'next/link'
 import { usePathname, useParams, useRouter } from 'next/navigation'
 import {
   BookOpen,
+  Building2,
   ClipboardList,
   Database,
   LayoutGrid,
   Lock,
   LogOut,
   MessageSquare,
+  School,
   Settings,
+  Users,
 } from 'lucide-react'
 import {
   clearToken,
@@ -91,8 +94,12 @@ export function Sidebar() {
     }).catch(() => {})
   }, [turma])
 
+  const isSecretaria = user?.perfil === 'secretaria'
+  const isGestorEscola = ['diretor', 'coordenador', 'gestor_escola'].includes(user?.perfil ?? '')
+  const isProfessor = user?.perfil === 'professor'
+
   const groups: NavGroup[] = [
-    {
+    ...(isProfessor || !user ? [{
       title: 'Professor',
       items: turmaId
         ? [
@@ -104,31 +111,18 @@ export function Sidebar() {
         : [
             { label: 'Turmas', href: '/turmas', icon: <LayoutGrid size={16} /> },
           ],
-    },
-    {
-      title: 'Gestão',
+    }] : []),
+    ...(isSecretaria || isGestorEscola ? [{
+      title: isSecretaria ? 'Secretaria' : 'Escola',
       items: [
-        {
-          label: 'Integrações',
-          href: '/config/integracoes',
-          icon: <Database size={16} />,
-          disabled: true,
-          hint: 'Planejado',
-        },
+        { label: 'Visão geral', href: '/secretaria', icon: <LayoutGrid size={16} /> },
+        ...(isSecretaria ? [{ label: 'Escolas', href: '/secretaria/escolas', icon: <Building2 size={16} /> }] : []),
+        { label: 'Turmas', href: '/secretaria/turmas', icon: <School size={16} /> },
+        { label: 'Pessoas', href: '/secretaria/pessoas', icon: <Users size={16} /> },
+        { label: 'Cardápio', href: '/secretaria/cardapio', icon: <Database size={16} /> },
+        { label: 'Transporte', href: '/secretaria/transporte', icon: <Settings size={16} /> },
       ],
-    },
-    {
-      title: 'Configurações',
-      items: [
-        {
-          label: 'Perfis e acesso',
-          href: '/config/perfis',
-          icon: <Settings size={16} />,
-          disabled: true,
-          hint: 'Em breve',
-        },
-      ],
-    },
+    }] : []),
   ]
 
   function logout() {

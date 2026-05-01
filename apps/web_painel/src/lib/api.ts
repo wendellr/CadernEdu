@@ -37,17 +37,34 @@ export class ApiError extends Error {
 
 export type TokenPair = { accessToken: string; refreshToken: string; expiresIn: number }
 
-export const login = (email: string, senha: string) =>
-  req<TokenPair>('/auth/login', {
+export type LoginOption = {
+  usuario_id: string
+  nome: string
+  email: string
+  perfil: PerfilUsuario
+  secretaria_id: string | null
+  secretaria_nome: string | null
+  escola_id: string | null
+  escola_nome: string | null
+}
+
+export const loginOptions = (email: string, senha: string) =>
+  req<LoginOption[]>('/auth/login-options', {
     method: 'POST',
     body: JSON.stringify({ email, senha }),
+  })
+
+export const login = (email: string, senha: string, usuarioId?: string) =>
+  req<TokenPair>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, senha, usuario_id: usuarioId }),
   })
 
 // ── Identity ──────────────────────────────────────────────────────────────────
 
 export type Secretaria = { id: string; nome: string; municipio: string; estado: string }
-export type Escola = { id: string; nome: string; secretaria_id: string; ativo: boolean }
-export type Turma = { id: string; nome: string; serie: string; ano_letivo: number; escola_id: string }
+export type Escola = { id: string; nome: string; codigo_inep?: string | null; secretaria_id: string; ativo: boolean }
+export type Turma = { id: string; nome: string; serie: string; ano_letivo: number; escola_id: string; ativo: boolean }
 
 export const getSecretaria = (secretariaId: string) =>
   req<Secretaria>(`/identity/secretarias/${secretariaId}`)
@@ -237,6 +254,90 @@ export type MensagemCreate = {
 
 export const listAlunosDaTurma = (turmaId: string) =>
   req<Aluno[]>(`/identity/turmas/${turmaId}/alunos`)
+
+// ── Admin — Secretaria ────────────────────────────────────────────────────────
+
+export type PerfilUsuario =
+  | 'aluno'
+  | 'professor'
+  | 'responsavel'
+  | 'diretor'
+  | 'coordenador'
+  | 'gestor_escola'
+  | 'secretaria'
+
+export type Usuario = {
+  id: string
+  keycloak_id: string
+  nome: string
+  email: string
+  perfil: PerfilUsuario
+  ativo: boolean
+  secretaria_id: string | null
+  escola_id: string | null
+  created_at: string
+}
+
+export type EscolaCreate = { nome: string; codigo_inep?: string }
+export type EscolaUpdate = { nome?: string; codigo_inep?: string | null; ativo?: boolean }
+export type TurmaCreate = { nome: string; serie: string; ano_letivo: number }
+export type TurmaUpdate = { nome?: string; serie?: string; ano_letivo?: number; ativo?: boolean }
+export type UsuarioCreate = {
+  keycloak_id: string
+  nome: string
+  email: string
+  perfil: PerfilUsuario
+  secretaria_id: string
+  escola_id?: string | null
+}
+export type UsuarioUpdate = Partial<UsuarioCreate> & { ativo?: boolean }
+
+export const listUsuarios = (secretariaId: string, perfil?: PerfilUsuario) =>
+  req<Usuario[]>(
+    `/identity/secretarias/${secretariaId}/usuarios${perfil ? `?perfil=${perfil}` : ''}`,
+  )
+
+export const criarEscola = (secretariaId: string, data: EscolaCreate) =>
+  req<Escola>(`/identity/secretarias/${secretariaId}/escolas`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+
+export const atualizarEscola = (escolaId: string, data: EscolaUpdate) =>
+  req<Escola>(`/identity/escolas/${escolaId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+
+export const removerEscola = (escolaId: string) =>
+  req<void>(`/identity/escolas/${escolaId}`, { method: 'DELETE' })
+
+export const criarTurma = (escolaId: string, data: TurmaCreate) =>
+  req<Turma>(`/identity/escolas/${escolaId}/turmas`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+
+export const atualizarTurma = (turmaId: string, data: TurmaUpdate) =>
+  req<Turma>(`/identity/turmas/${turmaId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+
+export const removerTurma = (turmaId: string) =>
+  req<void>(`/identity/turmas/${turmaId}`, { method: 'DELETE' })
+
+export const criarUsuario = (data: UsuarioCreate) =>
+  req<Usuario>('/identity/usuarios', { method: 'POST', body: JSON.stringify(data) })
+
+export const atualizarUsuario = (usuarioId: string, data: UsuarioUpdate) =>
+  req<Usuario>(`/identity/usuarios/${usuarioId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+
+export const removerUsuario = (usuarioId: string) =>
+  req<void>(`/identity/usuarios/${usuarioId}`, { method: 'DELETE' })
 
 export const listMensagens = (turmaId: string) =>
   req<Mensagem[]>(`/comunicacao/turmas/${turmaId}/mensagens`)

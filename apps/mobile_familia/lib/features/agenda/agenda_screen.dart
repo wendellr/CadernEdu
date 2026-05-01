@@ -7,234 +7,316 @@ import '../../providers/agenda_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'widgets/aula_card.dart';
 
-class AgendaScreen extends ConsumerWidget {
+class AgendaScreen extends ConsumerStatefulWidget {
   const AgendaScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AgendaScreen> createState() => _AgendaScreenState();
+}
+
+class _AgendaScreenState extends ConsumerState<AgendaScreen> {
+  // 0 = segunda … 6 = domingo; inicia no dia atual da semana
+  int _diaIndex = DateTime.now().weekday - 1;
+
+  int _indexParaHoje(DateTime inicio) {
+    final hoje = DateTime.now();
+    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+    for (var i = 0; i < 7; i++) {
+      final d = inicio.add(Duration(days: i));
+      if (d.year == hojeDate.year &&
+          d.month == hojeDate.month &&
+          d.day == hojeDate.day) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final semana = ref.watch(semanaProvider);
     final agendaAsync = ref.watch(agendaProvider);
-
     final inicio = _inicioSemana(semana);
-    final fim = inicio.add(const Duration(days: 6));
-    final hoje = DateTime.now();
-    final hojeFmt = _fmtDate(hoje);
 
-    final titulo = auth.isResponsavel && auth.alunoSelecionado != null
+    // Reseta o dia selecionado quando a semana muda
+    ref.listen<DateTime>(semanaProvider, (_, novo) {
+      setState(() => _diaIndex = _indexParaHoje(_inicioSemana(novo)));
+    });
+
+    final nomeUsuario = auth.isResponsavel && auth.alunoSelecionado != null
         ? auth.alunoSelecionado!.nome.split(' ').first
-        : auth.turmaSelecionada?.nome ?? 'Agenda';
+        : auth.nome?.split(' ').first ?? 'Olá';
+    final subtitulo = auth.isResponsavel && auth.alunoSelecionado != null
+        ? '${auth.alunoSelecionado!.nome.split(' ').first} · ${auth.turmaSelecionada?.nome ?? ''}'
+        : auth.turmaSelecionada?.nome ?? '';
+    final iniciais = nomeUsuario.isNotEmpty ? nomeUsuario[0].toUpperCase() : '?';
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: Text(titulo),
-        actions: const [],
-      ),
-      body: Column(
-        children: [
-          // ── Navegação de semana ──────────────────────────────────────────
-          Container(
-            color: AppColors.card,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () => ref
-                      .read(semanaProvider.notifier)
-                      .state = semana.subtract(const Duration(days: 7)),
-                ),
-                Expanded(
-                  child: Text(
-                    '${DateFormat("d MMM", "pt_BR").format(inicio)} – '
-                    '${DateFormat("d MMM yyyy", "pt_BR").format(fim)}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.fg),
+      backgroundColor: AppColors.indigo,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Greeting + avatar ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Olá, $nomeUsuario!',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (subtitulo.isNotEmpty)
+                          Text(
+                            subtitulo,
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                TextButton(
-                  onPressed: () => ref
-                      .read(semanaProvider.notifier)
-                      .state = DateTime.now(),
-                  child: const Text('Hoje',
-                      style: TextStyle(fontSize: 12, color: AppColors.cyan)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => ref
-                      .read(semanaProvider.notifier)
-                      .state = semana.add(const Duration(days: 7)),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.border),
-
-          // ── Conteúdo ────────────────────────────────────────────────────
-          Expanded(
-            child: agendaAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Text(e.toString(),
-                    style: const TextStyle(color: AppColors.fgDim)),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        iniciais,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              data: (agenda) {
-                final aulasPorDia = <String, List<Aula>>{};
-                for (final aula in agenda.aulas) {
-                  aulasPorDia.putIfAbsent(aula.data, () => []).add(aula);
-                }
-                final aulaIdsComAtividade = {
-                  for (final a in agenda.atividades)
-                    if (a.aulaId != null) a.aulaId!,
-                };
+            ),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: 7,
-                  itemBuilder: (context, i) {
-                    final dia = inicio.add(Duration(days: i));
-                    final diaFmt = _fmtDate(dia);
-                    final eDomingo = dia.weekday == DateTime.sunday;
-                    final eSabado = dia.weekday == DateTime.saturday;
-                    final eHoje = diaFmt == hojeFmt;
-                    final aulasNoDia = aulasPorDia[diaFmt] ?? [];
+            const SizedBox(height: 20),
 
-                    return _DiaCard(
-                      dia: dia,
-                      aulas: aulasNoDia,
-                      aulaIdsComAtividade: aulaIdsComAtividade,
-                      eHoje: eHoje,
-                      eDomingo: eDomingo,
-                      eSabado: eSabado,
+            // ── Tira de dias ───────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left,
+                        color: Colors.white70, size: 22),
+                    onPressed: () => ref.read(semanaProvider.notifier).state =
+                        semana.subtract(const Duration(days: 7)),
+                  ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: List.generate(7, (i) {
+                        final dia = inicio.add(Duration(days: i));
+                        final hoje = DateTime.now();
+                        final eHoje = dia.year == hoje.year &&
+                            dia.month == hoje.month &&
+                            dia.day == hoje.day;
+                        final selecionado = i == _diaIndex;
+                        final letra = DateFormat('E', 'pt_BR')
+                            .format(dia)
+                            .substring(0, 1)
+                            .toUpperCase();
+
+                        return GestureDetector(
+                          onTap: () => setState(() => _diaIndex = i),
+                          child: Column(
+                            children: [
+                              Text(
+                                letra,
+                                style: TextStyle(
+                                  color: selecionado
+                                      ? Colors.white
+                                      : Colors.white54,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: selecionado
+                                      ? Colors.white
+                                      : eHoje
+                                          ? Colors.white.withValues(alpha: 0.25)
+                                          : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${dia.day}',
+                                    style: TextStyle(
+                                      color: selecionado
+                                          ? AppColors.indigo
+                                          : Colors.white,
+                                      fontWeight: selecionado || eHoje
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right,
+                        color: Colors.white70, size: 22),
+                    onPressed: () => ref.read(semanaProvider.notifier).state =
+                        semana.add(const Duration(days: 7)),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Conteúdo do dia selecionado ────────────────────────────────
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: agendaAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(
+                    child: Text(e.toString(),
+                        style:
+                            const TextStyle(color: AppColors.fgDim)),
+                  ),
+                  data: (agenda) {
+                    final aulasPorDia = <String, List<Aula>>{};
+                    for (final aula in agenda.aulas) {
+                      aulasPorDia.putIfAbsent(aula.data, () => []).add(aula);
+                    }
+                    final aulaIdsComAtividade = {
+                      for (final a in agenda.atividades)
+                        if (a.aulaId != null) a.aulaId!,
+                    };
+
+                    final diaSelecionado =
+                        inicio.add(Duration(days: _diaIndex));
+                    final diaFmt = _fmtDate(diaSelecionado);
+                    final aulasHoje = aulasPorDia[diaFmt] ?? [];
+                    final eDomingo =
+                        diaSelecionado.weekday == DateTime.sunday;
+
+                    if (eDomingo) {
+                      return const _EstadoVazio(
+                        icone: Icons.weekend_outlined,
+                        titulo: 'Domingo',
+                        sub: 'Dia de descanso',
+                      );
+                    }
+
+                    if (aulasHoje.isEmpty) {
+                      return _EstadoVazio(
+                        icone: Icons.event_available_outlined,
+                        titulo: 'Sem aulas',
+                        sub: DateFormat("EEEE, d 'de' MMMM", 'pt_BR')
+                            .format(diaSelecionado),
+                      );
+                    }
+
+                    return ListView(
+                      padding:
+                          const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Text(
+                            DateFormat("EEEE, d 'de' MMMM", 'pt_BR')
+                                .format(diaSelecionado),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.fgDim,
+                            ),
+                          ),
+                        ),
+                        ...aulasHoje.map(
+                          (a) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: AulaCard(
+                              aula: a,
+                              hasAtividade:
+                                  aulaIdsComAtividade.contains(a.id),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _DiaCard extends StatelessWidget {
-  final DateTime dia;
-  final List<Aula> aulas;
-  final Set<String> aulaIdsComAtividade;
-  final bool eHoje, eDomingo, eSabado;
+class _EstadoVazio extends StatelessWidget {
+  final IconData icone;
+  final String titulo;
+  final String sub;
 
-  const _DiaCard({
-    required this.dia,
-    required this.aulas,
-    required this.aulaIdsComAtividade,
-    required this.eHoje,
-    required this.eDomingo,
-    required this.eSabado,
+  const _EstadoVazio({
+    required this.icone,
+    required this.titulo,
+    required this.sub,
   });
 
   @override
   Widget build(BuildContext context) {
-    final nomeDia = DateFormat('EEE', 'pt_BR').format(dia).toUpperCase();
-    final numDia = DateFormat('d', 'pt_BR').format(dia);
-    final mesDia = DateFormat('MMM', 'pt_BR').format(dia);
-
-    Color headerBg;
-    Color headerText;
-    if (eDomingo) {
-      headerBg = AppColors.bgAlt;
-      headerText = AppColors.fgFaint;
-    } else if (eHoje) {
-      headerBg = AppColors.cyan;
-      headerText = Colors.white;
-    } else if (eSabado) {
-      headerBg = const Color(0xFFFFFBEB);
-      headerText = const Color(0xFF92400E);
-    } else {
-      headerBg = AppColors.bgAlt;
-      headerText = AppColors.fg;
-    }
-
-    return Opacity(
-      opacity: eDomingo ? 0.45 : 1.0,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header do dia
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: headerBg,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(10)),
-              ),
-              child: Row(
-                children: [
-                  Text(nomeDia,
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                          color: eHoje ? Colors.white70 : AppColors.fgFaint)),
-                  const SizedBox(width: 8),
-                  Text('$numDia $mesDia',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: headerText)),
-                  if (eSabado) ...[
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFDE68A),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text('Letivo eventual',
-                          style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF92400E))),
-                    ),
-                  ],
-                ],
-              ),
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icone, size: 48, color: AppColors.fgFaint),
+          const SizedBox(height: 12),
+          Text(
+            titulo,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.fgDim,
             ),
-
-            // Aulas (ou estado vazio)
-            if (!eDomingo)
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: aulas.isEmpty
-                    ? Text(
-                        eSabado ? 'Sem atividade letiva' : 'Sem aulas',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.fgFaint),
-                      )
-                    : Column(
-                        children: aulas
-                            .map((a) => AulaCard(
-                                  aula: a,
-                                  hasAtividade:
-                                      aulaIdsComAtividade.contains(a.id),
-                                ))
-                            .toList(),
-                      ),
-              ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            sub,
+            style:
+                const TextStyle(fontSize: 13, color: AppColors.fgFaint),
+          ),
+        ],
       ),
     );
   }

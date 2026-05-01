@@ -76,13 +76,14 @@ class MensagemService:
         self,
         turma_id: uuid.UUID,
         secretaria_id: uuid.UUID,
+        destinatarios_visiveis: set[uuid.UUID] | None = None,
     ) -> list[MensagemResponse]:
         turma = await self.turma_repo.get(turma_id)
         if not turma:
             raise NotFoundError("Turma", turma_id)
 
         await _verificar_comunicacao(self.repo.session, secretaria_id, turma.escola_id)
-        mensagens = await self.repo.list_by_turma(turma_id)
+        mensagens = await self.repo.list_by_turma(turma_id, destinatarios_visiveis)
         return await self._enriquecer(mensagens)
 
     async def _enriquecer(self, mensagens: list[Mensagem]) -> list[MensagemResponse]:

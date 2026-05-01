@@ -9,6 +9,9 @@ export type StoredSecretaria = { id: string; nome: string }
 export type StoredUser = {
   name: string
   email: string
+  perfil?: string
+  secretaria_id?: string
+  escola_id?: string
 }
 
 export function getToken(): string | null {

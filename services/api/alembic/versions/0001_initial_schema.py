@@ -28,14 +28,15 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TYPE perfil_usuario AS ENUM (
-            'aluno', 'responsavel', 'professor', 'gestor_escola', 'secretaria'
+            'aluno', 'responsavel', 'professor', 'diretor', 'coordenador',
+            'gestor_escola', 'secretaria'
         )
     """)
     op.execute("""
         CREATE TYPE feature_key AS ENUM (
-            'agenda_online', 'comunicacao', 'trilhas_bncc', 'gamificacao',
-            'biblioteca_digital', 'onibus_ao_vivo', 'dashboard_evasao',
-            'tutor_ia', 'censo_inep'
+            'agenda_online', 'comunicacao', 'cardapio', 'transporte',
+            'trilhas_bncc', 'gamificacao', 'biblioteca_digital',
+            'onibus_ao_vivo', 'dashboard_evasao', 'tutor_ia', 'censo_inep'
         )
     """)
 

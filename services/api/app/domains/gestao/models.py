@@ -35,3 +35,30 @@ class Matricula(AuditMixin, Base):
     )
     ano_letivo: Mapped[int] = mapped_column(Integer, nullable=False)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class ProfessorTurma(AuditMixin, Base):
+    """Vínculo de escopo operacional do professor com suas turmas."""
+
+    __tablename__ = "professor_turmas"
+    __table_args__ = (
+        UniqueConstraint(
+            "professor_id",
+            "turma_id",
+            "ano_letivo",
+            name="uq_professor_turma_ano",
+        ),
+    )
+
+    professor_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    turma_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("turmas.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    ano_letivo: Mapped[int] = mapped_column(Integer, nullable=False)
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

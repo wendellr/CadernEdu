@@ -24,7 +24,7 @@ final agendaProvider = FutureProvider.autoDispose<AgendaSemana>((ref) async {
   final semana = ref.watch(semanaProvider);
   final inicio = _inicioSemana(semana);
   final fim = inicio.add(const Duration(days: 6));
-  final fmt = _fmtDate;
+  const fmt = _fmtDate;
 
   final api = ref.watch(pedagogicoApiProvider);
   final results = await Future.wait([

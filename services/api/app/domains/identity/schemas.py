@@ -35,6 +35,12 @@ class EscolaCreate(BaseModel):
     codigo_inep: str | None = Field(default=None, pattern=r"^\d{8}$")
 
 
+class EscolaUpdate(BaseModel):
+    nome: str | None = Field(default=None, min_length=2, max_length=200)
+    codigo_inep: str | None = Field(default=None, pattern=r"^\d{8}$")
+    ativo: bool | None = None
+
+
 class EscolaResponse(BaseModel):
     id: uuid.UUID
     secretaria_id: uuid.UUID
@@ -53,6 +59,13 @@ class TurmaCreate(BaseModel):
     nome: str = Field(min_length=1, max_length=50)
     serie: str = Field(min_length=1, max_length=50)
     ano_letivo: int = Field(ge=2020, le=2100)
+
+
+class TurmaUpdate(BaseModel):
+    nome: str | None = Field(default=None, min_length=1, max_length=50)
+    serie: str | None = Field(default=None, min_length=1, max_length=50)
+    ano_letivo: int | None = Field(default=None, ge=2020, le=2100)
+    ativo: bool | None = None
 
 
 class TurmaResponse(BaseModel):
@@ -88,6 +101,15 @@ class UsuarioCreate(BaseModel):
     perfil: PerfilUsuario
     secretaria_id: uuid.UUID | None = None
     escola_id: uuid.UUID | None = None
+
+
+class UsuarioUpdate(BaseModel):
+    nome: str | None = Field(default=None, min_length=2, max_length=200)
+    email: EmailStr | None = None
+    perfil: PerfilUsuario | None = None
+    secretaria_id: uuid.UUID | None = None
+    escola_id: uuid.UUID | None = None
+    ativo: bool | None = None
 
 
 class UsuarioResponse(BaseModel):

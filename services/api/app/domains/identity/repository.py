@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.gestao.models import Matricula
-from app.domains.identity.models import Escola, ResponsavelAluno, Secretaria, Turma, Usuario
+from app.domains.gestao.models import Matricula, ProfessorTurma
+from app.domains.identity.models import Escola, PerfilUsuario, ResponsavelAluno, Secretaria, Turma, Usuario
 
 
 class SecretariaRepository:
@@ -45,6 +45,16 @@ class EscolaRepository:
         )
         return list(result.scalars().all())
 
+    async def list_by_ids(self, escola_ids: list[uuid.UUID]) -> list[Escola]:
+        if not escola_ids:
+            return []
+        result = await self.session.execute(
+            select(Escola)
+            .where(Escola.id.in_(escola_ids), Escola.ativo.is_(True))
+            .order_by(Escola.nome)
+        )
+        return list(result.scalars().all())
+
     async def create(self, escola: Escola) -> Escola:
         self.session.add(escola)
         await self.session.flush()
@@ -72,6 +82,33 @@ class TurmaRepository:
         await self.session.flush()
         return turma
 
+    async def list_by_professor(
+        self, professor_id: uuid.UUID, ano_letivo: int | None = None
+    ) -> list[Turma]:
+        q = (
+            select(Turma)
+            .join(ProfessorTurma, ProfessorTurma.turma_id == Turma.id)
+            .where(
+                ProfessorTurma.professor_id == professor_id,
+                ProfessorTurma.ativo.is_(True),
+                Turma.ativo.is_(True),
+            )
+        )
+        if ano_letivo:
+            q = q.where(ProfessorTurma.ano_letivo == ano_letivo)
+        result = await self.session.execute(q.order_by(Turma.nome))
+        return list(result.scalars().all())
+
+    async def professor_tem_turma(self, professor_id: uuid.UUID, turma_id: uuid.UUID) -> bool:
+        result = await self.session.execute(
+            select(ProfessorTurma.id).where(
+                ProfessorTurma.professor_id == professor_id,
+                ProfessorTurma.turma_id == turma_id,
+                ProfessorTurma.ativo.is_(True),
+            )
+        )
+        return result.scalar_one_or_none() is not None
+
 
 class UsuarioRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -90,6 +127,30 @@ class UsuarioRepository:
         self.session.add(usuario)
         await self.session.flush()
         return usuario
+
+    async def listar_por_secretaria(
+        self, secretaria_id: uuid.UUID, perfil: PerfilUsuario | None = None
+    ) -> list[Usuario]:
+        q = select(Usuario).where(
+            Usuario.secretaria_id == secretaria_id,
+            Usuario.ativo.is_(True),
+        )
+        if perfil:
+            q = q.where(Usuario.perfil == perfil)
+        result = await self.session.execute(q.order_by(Usuario.nome))
+        return list(result.scalars().all())
+
+    async def listar_por_escola(
+        self, escola_id: uuid.UUID, perfil: PerfilUsuario | None = None
+    ) -> list[Usuario]:
+        q = select(Usuario).where(
+            Usuario.escola_id == escola_id,
+            Usuario.ativo.is_(True),
+        )
+        if perfil:
+            q = q.where(Usuario.perfil == perfil)
+        result = await self.session.execute(q.order_by(Usuario.nome))
+        return list(result.scalars().all())
 
     async def listar_filhos_do_responsavel(self, responsavel_id: uuid.UUID) -> list[Usuario]:
         result = await self.session.execute(

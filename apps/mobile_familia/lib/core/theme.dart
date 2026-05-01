@@ -12,6 +12,9 @@ const _fgFaint = Color(0xFFA1A19E);
 const _border = Color(0xFFE5E5E0);
 const _bgAlt = Color(0xFFF2F1EC);
 
+const _indigo = Color(0xFF1E3A8A);
+const _indigoMid = Color(0xFF2563EB);
+
 class AppColors {
   static const cyan = _cyan;
   static const cyanDeep = _cyanDeep;
@@ -24,12 +27,14 @@ class AppColors {
   static const fgFaint = _fgFaint;
   static const border = _border;
   static const bgAlt = _bgAlt;
+  static const indigo = _indigo;
+  static const indigoMid = _indigoMid;
 }
 
 ThemeData buildTheme() {
   return ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: _cyan,
       onPrimary: Colors.white,
       secondary: _green,

@@ -79,8 +79,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
-  Future<void> login(String email, String senha) async {
-    final data = await _api.login(email, senha);
+  Future<List<Map<String, dynamic>>> loginOptions(String email, String senha) {
+    return _api.loginOptions(email, senha);
+  }
+
+  Future<void> login(String email, String senha, {String? usuarioId}) async {
+    final data = await _api.login(email, senha, usuarioId: usuarioId);
     final token = data['accessToken'] as String;
     final payload = Storage.decodeJwt(token)!;
 

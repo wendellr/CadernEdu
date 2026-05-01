@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { login, ApiError } from '@/lib/api'
-import { setToken, setUser } from '@/lib/auth'
+import { login, loginOptions, getSecretaria, getEscola, ApiError, type LoginOption } from '@/lib/api'
+import { setToken, setUser, setSecretariaAtiva, setEscolaAtiva } from '@/lib/auth'
 
 type FormValues = { email: string; senha: string }
 
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const [opcoes, setOpcoes] = useState<LoginOption[]>([])
+  const [credenciais, setCredenciais] = useState<FormValues | null>(null)
 
   const {
     register,
@@ -20,18 +22,57 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<FormValues>()
 
+  async function concluirLogin(values: FormValues, usuarioId: string) {
+    const { accessToken } = await login(values.email, values.senha, usuarioId)
+    setToken(accessToken)
+    try {
+      const payload = JSON.parse(atob(accessToken.split('.')[1]))
+      setUser({
+        name: payload.name ?? values.email,
+        email: payload.email ?? values.email,
+        perfil: payload.perfil,
+        secretaria_id: payload.secretaria_id,
+        escola_id: payload.escola_id,
+      })
+      await Promise.allSettled([
+        payload.secretaria_id
+          ? getSecretaria(payload.secretaria_id).then((s) => setSecretariaAtiva({ id: s.id, nome: s.nome }))
+          : Promise.resolve(),
+        payload.escola_id
+          ? getEscola(payload.escola_id).then((e) => setEscolaAtiva({ id: e.id, nome: e.nome, secretaria_id: e.secretaria_id }))
+          : Promise.resolve(),
+      ])
+    } catch {
+      setUser({ name: values.email, email: values.email })
+    }
+    router.replace('/')
+  }
+
   async function onSubmit(values: FormValues) {
     setLoading(true)
+    setOpcoes([])
     try {
-      const { accessToken } = await login(values.email, values.senha)
-      setToken(accessToken)
-      try {
-        const payload = JSON.parse(atob(accessToken.split('.')[1]))
-        setUser({ name: payload.name ?? values.email, email: payload.email ?? values.email })
-      } catch {
-        setUser({ name: values.email, email: values.email })
+      const perfis = await loginOptions(values.email, values.senha)
+      if (perfis.length === 1) {
+        await concluirLogin(values, perfis[0].usuario_id)
+        return
       }
-      router.replace('/')
+      setCredenciais(values)
+      setOpcoes(perfis)
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Falha ao conectar com o servidor'
+      setErro(msg)
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function escolherPerfil(opcao: LoginOption) {
+    if (!credenciais) return
+    setLoading(true)
+    try {
+      await concluirLogin(credenciais, opcao.usuario_id)
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Falha ao conectar com o servidor'
       setErro(msg)
@@ -101,10 +142,34 @@ export default function LoginPage() {
               </div>
             )}
 
+            {opcoes.length > 1 && (
+              <div className="rounded-btn border border-border bg-bg-alt p-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-faint">
+                  Escolha o perfil
+                </p>
+                <div className="space-y-2">
+                  {opcoes.map((opcao) => (
+                    <button
+                      key={opcao.usuario_id}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => escolherPerfil(opcao)}
+                      className="w-full rounded-btn border border-border bg-card px-3 py-2 text-left text-sm transition-colors hover:border-cyan hover:bg-cyan/5 disabled:opacity-60"
+                    >
+                      <span className="block font-semibold text-fg">{perfilLabel(opcao.perfil)}</span>
+                      <span className="mt-0.5 block text-xs text-fg-faint">
+                        {[opcao.nome, opcao.escola_nome, opcao.secretaria_nome].filter(Boolean).join(' · ')}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
-              onClick={() => setErro(null)}
+              onClick={() => { setErro(null); setOpcoes([]) }}
               className="mt-2 w-full rounded-btn bg-cyan text-white font-semibold text-sm py-2.5 hover:bg-cyan-deep transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan focus-visible:ring-offset-2"
             >
               {loading ? 'Entrando…' : 'Entrar'}
@@ -118,6 +183,19 @@ export default function LoginPage() {
       </div>
     </main>
   )
+}
+
+function perfilLabel(perfil: string) {
+  const map: Record<string, string> = {
+    aluno: 'Aluno',
+    responsavel: 'Responsável',
+    professor: 'Professor',
+    diretor: 'Diretor',
+    coordenador: 'Coordenador',
+    gestor_escola: 'Gestor escolar',
+    secretaria: 'Secretaria',
+  }
+  return map[perfil] ?? perfil
 }
 
 function inputCls(hasError: boolean) {

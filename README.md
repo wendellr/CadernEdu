@@ -13,14 +13,18 @@ com sistemas oficiais já usados pela prefeitura antes de propor substituição.
 Assim, o CadernEdu funciona como camada moderna de experiência, operação e
 inteligência sem obrigar a secretaria a jogar fora processos existentes.
 
-**Quatro experiências distintas, mesma base de dados:**
+**Experiências distintas, mesma base de dados e escopo de acesso:**
 
 | Quem | Canal | O que faz |
 |---|---|---|
-| Aluno | App Flutter | Trilhas de estudo, agenda do dia, tarefas, conquistas |
-| Família | App Flutter | Acompanha desempenho, recebe comunicados, rastreia ônibus |
-| Professor | App Flutter + Painel web | Registra aulas, corrige tarefas, envia comunicados |
-| Secretaria | Painel web | Indicadores por escola, alertas de evasão, gestão de matrículas |
+| Secretaria | Painel web | CRUD da rede municipal: escolas, turmas, pessoas, cardápio, transporte e módulos da secretaria |
+| Diretor/Coordenador | Painel web | CRUD da escola: professores, turmas, alunos, cardápio, transporte e rotinas da unidade |
+| Professor | Painel web | Registra aulas, chamada, atividades de casa e comunicados das próprias turmas |
+| Família/Responsável | App Flutter | Consulta filhos/tutelados: agenda, atividades, comunicados, cardápio e transporte |
+| Aluno | App Flutter | Consulta a própria agenda, atividades, comunicados, cardápio e transporte |
+
+Um mesmo e-mail pode ter mais de um vínculo ativo. No login, o CadernEdu lista
+os perfis disponíveis e emite o token para o perfil escolhido, com escopo próprio.
 
 ## Quick start
 
@@ -37,6 +41,10 @@ cp .env.example .env
 
 # 3. Sobe tudo
 docker compose up --build -d
+
+# 4. Aplica migrações e carrega dados ricos de demonstração
+docker compose exec api alembic upgrade head
+docker compose exec api python scripts/seed_demo.py --reset
 ```
 
 Acesse:
@@ -46,6 +54,58 @@ Acesse:
 - **MinIO Console** → http://localhost:9001 _(user: cadernedu / senha: dev_secret_change_me)_
 - **Mailhog** → http://localhost:8025
 - **Keycloak** → http://localhost:8180 _(user: admin / senha: admin)_
+
+### Logins de demonstração
+
+Em desenvolvimento, a senha é ignorada pela API local. Use qualquer valor com
+ao menos 8 caracteres no painel web.
+
+| Perfil | E-mail | Escopo |
+|---|---|---|
+| Secretaria | `secretaria@demo.edu.br` | SME São Gabriel inteira |
+| Diretor | `diretor.nair@demo.edu.br` | EMEF Profª Nair Rodrigues |
+| Coordenador | `coordenador.dompedro@demo.edu.br` | EMEF Dom Pedro II |
+| Professor | `ana.costa@demo.edu.br` | Turmas vinculadas ao professor |
+| Responsável | `responsavel@demo.edu.br` | Filhos/tutelados vinculados |
+| Aluno | `lucas@demo.edu.br` | Próprio aluno |
+
+O endpoint `POST /v1/auth/login-options` retorna os vínculos disponíveis para
+um e-mail. O `POST /v1/auth/login` aceita `usuario_id` para abrir sessão no
+perfil escolhido.
+
+### Demo no Portainer
+
+Para manter o staging/demo do Portainer com os mesmos dados locais, deixe
+`ENVIRONMENT=staging` e rode o seed demo após o deploy.
+
+Opção 1 — console do container `cadernedu-api`:
+
+```bash
+python scripts/seed_demo.py --reset
+```
+
+Opção 2 — serviço opcional no compose do Portainer:
+
+1. Adicione temporariamente `COMPOSE_PROFILES=demo-seed` nas variáveis da stack.
+2. Faça redeploy/update da stack.
+3. Aguarde o container `cadernedu-seed-demo` concluir com sucesso.
+4. Remova `COMPOSE_PROFILES=demo-seed` e faça novo redeploy.
+
+O seed demo usa `--reset`: ele apaga e recria os dados da stack. Isso é adequado
+para ambiente de demonstração, mas não para dados reais.
+
+## Perfis e escopos
+
+| Perfil | Escopo de dados | Permissões principais |
+|---|---|---|
+| `secretaria` | Toda a secretaria | Gerencia escolas, diretores/coordenadores, professores, turmas, alunos, responsáveis e módulos da rede |
+| `diretor` / `coordenador` | Escola vinculada | Gerencia pessoas, turmas, cardápio e transporte da própria escola |
+| `professor` | Turmas vinculadas em `professor_turmas` | Registra aulas, chamada, atividades de casa e comunicados das suas turmas |
+| `responsavel` | Filhos/tutelados em `responsavel_aluno` | Visualiza informações dos filhos/tutelados no app |
+| `aluno` | Próprio usuário/matrículas | Visualiza a própria rotina escolar no app |
+
+Os escopos são aplicados no backend; a interface apenas adapta navegação e
+experiência ao perfil selecionado.
 
 ## Módulos
 
@@ -57,6 +117,8 @@ As funcionalidades são habilitadas por secretaria, com override por escola.
 |---|---|
 | **Agenda Online** | Professor registra aulas do dia e atividades de casa; alunos e famílias consultam a agenda |
 | **Comunicação** | Mensagens diretas com anexos de mídia e documentos |
+| **Cardápio** | Gestão e consulta de cardápio por secretaria/escola |
+| **Transporte** | Gestão e consulta de rotas e vínculo dos alunos ao transporte |
 
 ### Opcionais — habilitados por contrato
 
@@ -89,8 +151,7 @@ As funcionalidades são habilitadas por secretaria, com override por escola.
 
 ```
 apps/
-  mobile_aluno/       Flutter — app do aluno
-  mobile_familia/     Flutter — app da família
+  mobile_familia/     Flutter — app de família e aluno
   web_painel/         Next.js — painel professor + secretaria
   web_site/           Next.js — landing pública ✅
 
@@ -106,7 +167,7 @@ services/
       features/       Feature flags por secretaria/escola ✅
       pedagogico/     Agenda, aulas, atividades de casa ✅
       comunicacao/    Mensagens + anexos
-      gestao/         Matrículas, frequência
+      gestao/         Matrículas, frequência, professor-turma
       analytics/      Indicadores, evasão
       integrations/   Conectores, importações, reconciliação
 

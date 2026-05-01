@@ -27,7 +27,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.core.config import settings
 from app.domains.features.models import FeatureFlag, FeatureKey
-from app.domains.gestao.models import Matricula
+from app.domains.gestao.models import Matricula, ProfessorTurma
 from app.domains.identity.models import (
     Escola,
     PerfilUsuario,
@@ -64,6 +64,35 @@ async def seed():
             )
             session.add(escola)
             await session.flush()
+
+            secretaria_user = Usuario(
+                keycloak_id="dev-secretaria-001",
+                nome="Secretaria Teste",
+                email="secretaria@teste.edu.br",
+                perfil=PerfilUsuario.secretaria,
+                secretaria_id=secretaria.id,
+                escola_id=None,
+                ativo=True,
+            )
+            diretor = Usuario(
+                keycloak_id="dev-diretor-001",
+                nome="Diretora Teste",
+                email="diretor@teste.edu.br",
+                perfil=PerfilUsuario.diretor,
+                secretaria_id=secretaria.id,
+                escola_id=escola.id,
+                ativo=True,
+            )
+            coordenador = Usuario(
+                keycloak_id="dev-coordenador-001",
+                nome="Coordenador Teste",
+                email="coordenador@teste.edu.br",
+                perfil=PerfilUsuario.coordenador,
+                secretaria_id=secretaria.id,
+                escola_id=escola.id,
+                ativo=True,
+            )
+            session.add_all([secretaria_user, diretor, coordenador])
 
             # ── Turmas ────────────────────────────────────────────────────────
             turma_5a = Turma(
@@ -135,6 +164,23 @@ async def seed():
                 ]
             )
 
+            session.add_all(
+                [
+                    ProfessorTurma(
+                        professor_id=professor.id,
+                        turma_id=turma_5a.id,
+                        ano_letivo=2026,
+                        ativo=True,
+                    ),
+                    ProfessorTurma(
+                        professor_id=professor.id,
+                        turma_id=turma_3b.id,
+                        ano_letivo=2026,
+                        ativo=True,
+                    ),
+                ]
+            )
+
             # ── Matrículas ────────────────────────────────────────────────────
             session.add_all(
                 [
@@ -165,6 +211,9 @@ async def seed():
         print(f"   Escola     : {escola.nome}")
         print()
         print("   ── Logins de teste (senha: qualquer valor em dev) ──")
+        print("   Secretaria: secretaria@teste.edu.br")
+        print("   Diretor   : diretor@teste.edu.br")
+        print("   Coordenação: coordenador@teste.edu.br")
         print("   Professor  : professor@teste.edu.br")
         print(f"   Aluno 1    : aluno@teste.edu.br   → {turma_5a.nome}")
         print(f"   Aluno 2    : aluno2@teste.edu.br  → {turma_3b.nome}")

@@ -9,7 +9,15 @@ from app.domains.identity.repository import (
     TurmaRepository,
     UsuarioRepository,
 )
-from app.domains.identity.schemas import EscolaCreate, SecretariaCreate, TurmaCreate, UsuarioCreate
+from app.domains.identity.schemas import (
+    EscolaCreate,
+    EscolaUpdate,
+    SecretariaCreate,
+    TurmaCreate,
+    TurmaUpdate,
+    UsuarioCreate,
+    UsuarioUpdate,
+)
 from app.shared.exceptions import ConflictError, NotFoundError
 
 
@@ -57,6 +65,18 @@ class EscolaService:
     async def listar_por_secretaria(self, secretaria_id: uuid.UUID) -> list[Escola]:
         return await self.repo.list_by_secretaria(secretaria_id)
 
+    async def atualizar(self, escola_id: uuid.UUID, data: EscolaUpdate) -> Escola:
+        escola = await self.get_or_404(escola_id)
+        for campo, valor in data.model_dump(exclude_unset=True).items():
+            setattr(escola, campo, valor)
+        await self.repo.session.flush()
+        return escola
+
+    async def remover(self, escola_id: uuid.UUID) -> None:
+        escola = await self.get_or_404(escola_id)
+        escola.ativo = False
+        await self.repo.session.flush()
+
 
 class TurmaService:
     def __init__(self, session: AsyncSession) -> None:
@@ -81,6 +101,23 @@ class TurmaService:
     ) -> list[Turma]:
         return await self.repo.list_by_escola(escola_id, ano_letivo)
 
+    async def listar_por_professor(
+        self, professor_id: uuid.UUID, ano_letivo: int | None = None
+    ) -> list[Turma]:
+        return await self.repo.list_by_professor(professor_id, ano_letivo)
+
+    async def atualizar(self, turma_id: uuid.UUID, data: TurmaUpdate) -> Turma:
+        turma = await self.get_or_404(turma_id)
+        for campo, valor in data.model_dump(exclude_unset=True).items():
+            setattr(turma, campo, valor)
+        await self.repo.session.flush()
+        return turma
+
+    async def remover(self, turma_id: uuid.UUID) -> None:
+        turma = await self.get_or_404(turma_id)
+        turma.ativo = False
+        await self.repo.session.flush()
+
 
 class UsuarioService:
     def __init__(self, session: AsyncSession) -> None:
@@ -92,6 +129,10 @@ class UsuarioService:
         if existente:
             existente.nome = data.nome
             existente.email = data.email
+            existente.perfil = data.perfil
+            existente.secretaria_id = data.secretaria_id
+            existente.escola_id = data.escola_id
+            await self.repo.session.flush()
             return existente
 
         usuario = Usuario(**data.model_dump())
@@ -102,3 +143,15 @@ class UsuarioService:
         if not usuario:
             raise NotFoundError("Usuario", usuario_id)
         return usuario
+
+    async def atualizar(self, usuario_id: uuid.UUID, data: UsuarioUpdate) -> Usuario:
+        usuario = await self.get_or_404(usuario_id)
+        for campo, valor in data.model_dump(exclude_unset=True).items():
+            setattr(usuario, campo, valor)
+        await self.repo.session.flush()
+        return usuario
+
+    async def remover(self, usuario_id: uuid.UUID) -> None:
+        usuario = await self.get_or_404(usuario_id)
+        usuario.ativo = False
+        await self.repo.session.flush()

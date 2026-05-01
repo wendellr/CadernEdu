@@ -14,6 +14,8 @@ class FeatureKey(enum.StrEnum):
     # Módulos baseline — obrigatórios em todo contrato
     agenda_online = "agenda_online"
     comunicacao = "comunicacao"
+    cardapio = "cardapio"
+    transporte = "transporte"
 
     # Módulos opcionais — habilitados por contrato
     trilhas_bncc = "trilhas_bncc"

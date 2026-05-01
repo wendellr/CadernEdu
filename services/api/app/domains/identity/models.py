@@ -12,6 +12,8 @@ class PerfilUsuario(enum.StrEnum):
     aluno = "aluno"
     responsavel = "responsavel"
     professor = "professor"
+    diretor = "diretor"
+    coordenador = "coordenador"
     gestor_escola = "gestor_escola"
     secretaria = "secretaria"
 
